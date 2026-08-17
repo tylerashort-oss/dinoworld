@@ -525,6 +525,9 @@ export class GameEngine {
       area: this.areaIndex,
       exitOpen: this.exitOpen,
       exit: this.area.exit,
+      chest: this.area.chest ?? null,
+      chestOpen: this.chestOpen,
+      cave: this.area.cave ?? null,
       dead: this.dead,
       enemies: this.enemies.map((e) => ({ type: e.type, hp: Math.round(e.hp), x: Math.round(e.x), y: Math.round(e.y) })),
     };
