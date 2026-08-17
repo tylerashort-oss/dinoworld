@@ -345,6 +345,16 @@ export class GameEngine {
     this.attackCd = w.cooldown;
     this.attackAnim = 0.22;
     playSfx("attack");
+    // Kid-friendly auto-aim: if an enemy is in reach, swing at the closest one.
+    const assist = this.nearestEnemy(this.px, this.py);
+    if (assist && dist(this.px, this.py, assist.x, assist.y) < w.range + assist.radius + 40) {
+      this.aimX = assist.x - this.px;
+      this.aimY = assist.y - this.py;
+      const m = Math.hypot(this.aimX, this.aimY) || 1;
+      this.aimX /= m;
+      this.aimY /= m;
+      this.facing = this.aimX >= 0 ? 1 : -1;
+    }
     const ang = Math.atan2(this.aimY, this.aimX);
     // swing arc particles
     for (let i = 0; i < 10; i++) {
