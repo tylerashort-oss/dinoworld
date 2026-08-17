@@ -63,25 +63,25 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --background: oklch(0.17 0.03 35);
+  --foreground: oklch(0.97 0.02 80);
+  --card: oklch(0.24 0.04 35);
+  --card-foreground: oklch(0.97 0.02 80);
+  --popover: oklch(0.22 0.04 35);
+  --popover-foreground: oklch(0.97 0.02 80);
+  --primary: oklch(0.72 0.19 48);
+  --primary-foreground: oklch(0.17 0.04 35);
+  --secondary: oklch(0.32 0.05 40);
+  --secondary-foreground: oklch(0.97 0.02 80);
+  --muted: oklch(0.3 0.03 40);
+  --muted-foreground: oklch(0.75 0.03 70);
+  --accent: oklch(0.66 0.17 30);
+  --accent-foreground: oklch(0.98 0.02 80);
+  --destructive: oklch(0.62 0.24 27);
+  --destructive-foreground: oklch(0.98 0.02 80);
+  --border: oklch(0.38 0.06 40);
+  --input: oklch(0.38 0.06 40);
+  --ring: oklch(0.72 0.19 48);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -95,6 +95,36 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+}
+
+@layer base {
+  html,
+  body {
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  }
+  h1,
+  h2,
+  .title-glow {
+    font-family: "Titan One", "Nunito", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.02em;
+  }
+}
+
+@utility volcanic-bg {
+  background:
+    radial-gradient(120% 90% at 70% 10%, oklch(0.42 0.16 45 / 0.55), transparent 60%),
+    radial-gradient(90% 70% at 10% 90%, oklch(0.38 0.14 25 / 0.5), transparent 60%),
+    linear-gradient(180deg, oklch(0.16 0.03 35), oklch(0.11 0.02 30));
+}
+
+.title-glow {
+  text-shadow:
+    0 0 18px oklch(0.72 0.19 48 / 0.75),
+    0 4px 0 oklch(0.3 0.1 30);
 }
 
 .dark {
