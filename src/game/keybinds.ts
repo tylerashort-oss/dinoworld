@@ -1,4 +1,13 @@
-export type ActionId = "attack" | "pet" | "jump" | "up" | "down" | "left" | "right" | "pause";
+export type ActionId =
+  | "attack"
+  | "pet"
+  | "jump"
+  | "dash"
+  | "up"
+  | "down"
+  | "left"
+  | "right"
+  | "pause";
 
 export type Keybinds = Record<ActionId, string[]>;
 
@@ -12,6 +21,7 @@ export const ACTIONS: ActionMeta[] = [
   { id: "attack", label: "Attack", hint: "Hold to keep swinging" },
   { id: "pet", label: "Pet Attack", hint: "Send your pet at the nearest dino" },
   { id: "jump", label: "Jump", hint: "Hop over lava splashes" },
+  { id: "dash", label: "Dash", hint: "Pink Explorer only — quick dodge roll" },
   { id: "up", label: "Move Up", hint: "" },
   { id: "down", label: "Move Down", hint: "" },
   { id: "left", label: "Move Left", hint: "" },
@@ -24,6 +34,7 @@ export function defaultKeybinds(): Keybinds {
     attack: ["Space"],
     pet: ["Enter"],
     jump: ["ShiftLeft", "KeyX"],
+    dash: ["KeyC"],
     up: ["KeyW", "ArrowUp"],
     down: ["KeyS", "ArrowDown"],
     left: ["KeyA", "ArrowLeft"],
