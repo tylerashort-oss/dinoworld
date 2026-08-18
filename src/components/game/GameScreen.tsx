@@ -608,7 +608,7 @@ function Overlay({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ActionButton({
+const ActionButton = memo(function ActionButton({
   label,
   onPress,
   onRelease,
@@ -645,6 +645,6 @@ function ActionButton({
       />
     </button>
   );
-}
+});
 
 export { CARDS };
