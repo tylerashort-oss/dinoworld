@@ -356,6 +356,11 @@ export class GameEngine {
     return this.areaIndex;
   }
 
+  /** True when the current area uses the frozen theme. */
+  private get isIce() {
+    return this.area?.theme === "ice";
+  }
+
   start() {
     if (this.running) return;
     this.running = true;
