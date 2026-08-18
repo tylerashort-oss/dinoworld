@@ -4,7 +4,6 @@ import {
   CARD_PACK_COST,
   CHARACTERS,
   EXTRA_LIFE_COST,
-  PETS,
   UPGRADES,
   WEAPONS,
   getCharacter,
