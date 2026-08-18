@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CARDS, CHARACTERS, PETS, WEAPONS, getCharacter, getCard, type CardType } from "@/game/content";
-import { AREAS } from "@/game/areas";
+import { WORLDS } from "@/game/worlds";
+import { ACTIONS, keyLabel, rebind, defaultKeybinds, type ActionId } from "@/game/keybinds";
 import type { SaveData } from "@/game/save";
 import { GameCard } from "./GameCard";
 
@@ -90,18 +91,22 @@ export function CharacterSelect({
 
 export function WorldMap({
   save,
+  setSave,
   onPlay,
   onCamp,
   onCollection,
+  onSettings,
   onMenu,
 }: {
   save: SaveData;
-  onPlay: () => void;
+  setSave: (fn: (s: SaveData) => SaveData) => void;
+  onPlay: (worldId: number) => void;
   onCamp: () => void;
   onCollection: () => void;
+  onSettings: () => void;
   onMenu: () => void;
 }) {
-  const area = AREAS[save.areaIndex];
+  const currentWorld = save.world ?? 1;
   return (
     <Shell>
       <div className="flex items-center justify-between">
@@ -113,42 +118,71 @@ export function WorldMap({
           <button onClick={onCollection} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold">
             🃏 CARDS
           </button>
+          <button onClick={onSettings} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold">
+            ⚙️ SETTINGS
+          </button>
           <button onClick={onMenu} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold">
             ☰
           </button>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <div className={panel}>
-          <div className="text-xs font-black tracking-widest text-amber-300">WORLD 1</div>
-          <div className="text-2xl font-black text-foreground">🌋 VOLCANIC LANDS</div>
-          <div className="mt-1 text-xs font-bold text-primary">
-            {save.world1Complete ? "COMPLETED" : "IN PROGRESS"} · {area?.name ?? ""}
-          </div>
-          <ol className="mt-3 space-y-1 text-xs">
-            {AREAS.map((a, i) => (
-              <li
-                key={a.id}
-                className={i === save.areaIndex ? "font-black text-primary" : i < save.areaIndex ? "text-emerald-400" : "text-muted-foreground"}
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        {WORLDS.map((w) => {
+          const key = String(w.id);
+          const unlocked = w.id === 1 || (w.id === 2 && save.world2Unlocked);
+          const at = currentWorld === w.id ? save.areaIndex : (save.progress?.[key] ?? 0);
+          const complete = w.id === 1 ? save.world1Complete : save.world2Complete;
+          return (
+            <div key={w.id} className={`${panel} ${unlocked ? "" : "opacity-60"}`}>
+              <div className="text-xs font-black tracking-widest text-amber-300">WORLD {w.id}</div>
+              <div className="text-2xl font-black text-foreground">
+                {w.emoji} {w.name}
+              </div>
+              <div className="mt-1 text-xs font-bold text-primary">
+                {!unlocked
+                  ? "LOCKED — defeat Firesauras to unlock"
+                  : complete
+                    ? "COMPLETED"
+                    : `IN PROGRESS · ${w.areas[at]?.name ?? w.areas[0]?.name}`}
+              </div>
+              <ol className="mt-3 space-y-1 text-xs">
+                {w.areas.map((a, i) => (
+                  <li
+                    key={a.id}
+                    className={
+                      unlocked && i === at
+                        ? "font-black text-primary"
+                        : unlocked && i < at
+                          ? "text-emerald-400"
+                          : "text-muted-foreground"
+                    }
+                  >
+                    {unlocked && i < at ? "✔" : unlocked && i === at ? "▶" : "•"} {a.name}
+                    {a.checkpoint ? " ⛳" : ""}
+                  </li>
+                ))}
+              </ol>
+              <button
+                disabled={!unlocked}
+                onClick={() => onPlay(w.id)}
+                className="mt-4 w-full rounded-xl bg-primary py-4 text-xl font-black text-primary-foreground active:scale-95 disabled:opacity-40"
               >
-                {i < save.areaIndex ? "✔" : i === save.areaIndex ? "▶" : "•"} {a.name}
-              </li>
-            ))}
-          </ol>
-          <button onClick={onPlay} className="mt-4 w-full rounded-xl bg-primary py-4 text-xl font-black text-primary-foreground active:scale-95">
-            ▶ PLAY
-          </button>
-        </div>
+                {unlocked ? "▶ PLAY" : "🔒 LOCKED"}
+              </button>
+            </div>
+          );
+        })}
 
-        <div className={`${panel} ${save.world2Unlocked ? "" : "opacity-60"}`}>
-          <div className="text-xs font-black tracking-widest text-sky-300">WORLD 2</div>
-          <div className="text-2xl font-black text-foreground">❄️ ICE WORLD</div>
-          <div className="mt-1 text-xs font-bold text-sky-300">
-            {save.world2Unlocked ? "UNLOCKED — COMING SOON" : "LOCKED — defeat Firesauras to unlock"}
+        <div className={`${panel} opacity-60`}>
+          <div className="text-xs font-black tracking-widest text-emerald-300">WORLD 3</div>
+          <div className="text-2xl font-black text-foreground">🌴 POISON JUNGLE</div>
+          <div className="mt-1 text-xs font-bold text-emerald-300">
+            {save.world3Unlocked ? "UNLOCKED — COMING SOON" : "LOCKED — defeat Glacierus to unlock"}
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Frozen dinosaurs, ice caves and the Ice Claw await. Playable content arrives in the next update.
+            A steaming poison forest full of toxic spores, vine traps and venom dinosaurs. Arriving in a
+            future update.
           </p>
         </div>
       </div>
