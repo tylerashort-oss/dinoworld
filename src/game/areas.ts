@@ -180,6 +180,7 @@ export const AREAS: AreaDef[] = [
     ],
     exit: { x: 1600, y: 650 },
     eruptions: 12,
+    checkpoint: true,
   },
   {
     id: "treasure_room",
