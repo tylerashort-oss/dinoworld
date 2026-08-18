@@ -38,5 +38,6 @@ export const WORLDS: WorldDef[] = [
   },
 ];
 
-export const getWorld = (id: number): WorldDef => WORLDS.find((w) => w.id === id) ?? (WORLDS[0] as WorldDef);
+export const getWorld = (id: number): WorldDef =>
+  WORLDS.find((w) => w.id === id) ?? (WORLDS[0] as WorldDef);
 export const getAreas = (worldId: number): AreaDef[] => getWorld(worldId).areas;

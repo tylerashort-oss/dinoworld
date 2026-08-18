@@ -41,14 +41,19 @@ export function MainMenu({
     <Shell>
       <div className="flex min-h-[calc(100vh-2rem)] flex-col items-center justify-center gap-6 text-center">
         <div>
-          <h1 className="title-glow text-5xl font-black tracking-[0.12em] text-primary md:text-7xl">DINO QUEST</h1>
+          <h1 className="title-glow text-5xl font-black tracking-[0.12em] text-primary md:text-7xl">
+            DINO QUEST
+          </h1>
           <p className="mt-2 text-lg font-bold tracking-[0.35em] text-amber-200 md:text-2xl">
             🌋 VOLCANIC LANDS
           </p>
         </div>
         <div className="flex flex-col gap-3">
           {hasExisting && (
-            <button onClick={onContinue} className="rounded-2xl bg-primary px-14 py-4 text-2xl font-black text-primary-foreground active:scale-95">
+            <button
+              onClick={onContinue}
+              className="rounded-2xl bg-primary px-14 py-4 text-2xl font-black text-primary-foreground active:scale-95"
+            >
               CONTINUE
             </button>
           )}
@@ -82,7 +87,11 @@ export function CharacterSelect({
       <h2 className="text-center text-3xl font-black text-primary">CHOOSE YOUR HERO</h2>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {Object.values(CHARACTERS).map((c) => (
-          <button key={c.id} onClick={() => onPick(c.id)} className={`${panel} text-left active:scale-[.98]`}>
+          <button
+            key={c.id}
+            onClick={() => onPick(c.id)}
+            className={`${panel} text-left active:scale-[.98]`}
+          >
             <div className="flex items-center gap-4">
               <img src={c.art} alt={c.name} className="h-40 w-32 object-contain" />
               <div>
@@ -124,16 +133,28 @@ export function WorldMap({
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-black text-primary">WORLD MAP</h2>
         <div className="flex gap-2">
-          <button onClick={onCamp} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold">
+          <button
+            onClick={onCamp}
+            className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold"
+          >
             🏕️ CAMP
           </button>
-          <button onClick={onCollection} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold">
+          <button
+            onClick={onCollection}
+            className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold"
+          >
             🃏 CARDS
           </button>
-          <button onClick={onSettings} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold">
+          <button
+            onClick={onSettings}
+            className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold"
+          >
             ⚙️ SETTINGS
           </button>
-          <button onClick={onMenu} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold">
+          <button
+            onClick={onMenu}
+            className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold"
+          >
             ☰
           </button>
         </div>
@@ -143,10 +164,16 @@ export function WorldMap({
         {WORLDS.map((w) => {
           const key = String(w.id);
           const unlocked =
-            w.id === 1 || (w.id === 2 && save.world2Unlocked) || (w.id === 3 && save.world3Unlocked);
+            w.id === 1 ||
+            (w.id === 2 && save.world2Unlocked) ||
+            (w.id === 3 && save.world3Unlocked);
           const at = currentWorld === w.id ? save.areaIndex : (save.progress?.[key] ?? 0);
           const complete =
-            w.id === 1 ? save.world1Complete : w.id === 2 ? save.world2Complete : save.world3Complete;
+            w.id === 1
+              ? save.world1Complete
+              : w.id === 2
+                ? save.world2Complete
+                : save.world3Complete;
           return (
             <div key={w.id} className={`${panel} ${unlocked ? "" : "opacity-60"}`}>
               <div className="text-xs font-black tracking-widest text-amber-300">WORLD {w.id}</div>
@@ -198,7 +225,6 @@ export function WorldMap({
             </div>
           );
         })}
-
       </div>
     </Shell>
   );
@@ -265,14 +291,17 @@ export function DinoCamp({
             })}
           </div>
           <div className="mt-3 rounded-xl border border-dashed border-border p-2 text-[10px] text-muted-foreground">
-            CRAFTING: 🦴 Bones + 🔥 Volcano Fire → Fire Claw. 🦴 Bones + ❄️ Ice → Ice Claw (World 2).
+            CRAFTING: 🦴 Bones + 🔥 Volcano Fire → Fire Claw. 🦴 Bones + ❄️ Ice → Ice Claw (World
+            2).
           </div>
         </div>
 
         <div className={panel}>
           <div className="text-xs font-black tracking-widest text-amber-300">PETS</div>
           {ownedPets(save.pets, save.cards).length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground">No pets yet — defeat Mini Fire Raptor to get one!</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              No pets yet — defeat Mini Fire Raptor to get one!
+            </p>
           )}
           <div className="mt-2 max-h-72 space-y-2 overflow-y-auto">
             {ownedPets(save.pets, save.cards).map((p) => {
@@ -280,7 +309,9 @@ export function DinoCamp({
               return (
                 <button
                   key={id}
-                  onClick={() => setSave((s) => ({ ...s, equippedPet: s.equippedPet === id ? null : id }))}
+                  onClick={() =>
+                    setSave((s) => ({ ...s, equippedPet: s.equippedPet === id ? null : id }))
+                  }
                   className={`flex w-full items-center gap-2 rounded-xl border-2 p-2 text-left ${save.equippedPet === id ? "border-primary bg-primary/20" : "border-border bg-black/30"}`}
                 >
                   <img src={p.art} alt={p.name} className="h-12 w-12 object-contain" />
@@ -294,7 +325,10 @@ export function DinoCamp({
               );
             })}
           </div>
-          <button onClick={onCollection} className="mt-3 w-full rounded-xl bg-primary py-3 font-black text-primary-foreground">
+          <button
+            onClick={onCollection}
+            className="mt-3 w-full rounded-xl bg-primary py-3 font-black text-primary-foreground"
+          >
             🃏 CARD COLLECTION ({save.cards.length})
           </button>
         </div>
@@ -360,8 +394,8 @@ function BoneForge({
       </div>
       {pink && (
         <p className="mt-2 rounded-lg bg-pink-500/15 px-3 py-2 text-[11px] font-bold text-pink-200">
-          Pink Explorer perk: +50% bones, 25% cheaper forge prices, a shield each level, double pet strikes and a
-          bigger bone magnet.
+          Pink Explorer perk: +50% bones, 25% cheaper forge prices, a shield each level, double pet
+          strikes and a bigger bone magnet.
         </p>
       )}
       <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -393,7 +427,9 @@ function BoneForge({
           <div className="text-[11px] text-muted-foreground">
             Get back up right where you fell instead of returning to the checkpoint.
           </div>
-          <div className="mt-1 text-[11px] font-bold text-primary">IN STOCK: {save.extraLives ?? 0}</div>
+          <div className="mt-1 text-[11px] font-bold text-primary">
+            IN STOCK: {save.extraLives ?? 0}
+          </div>
           <button
             disabled={save.bones < Math.round(EXTRA_LIFE_COST * (1 - discount))}
             onClick={buyLife}
@@ -451,7 +487,9 @@ export function Collection({
       </div>
       {tab === "PET" && (
         <div className={`${panel} mt-4`}>
-          <div className="text-xs font-black tracking-widest text-amber-300">🦖 CHOOSE YOUR PET</div>
+          <div className="text-xs font-black tracking-widest text-amber-300">
+            🦖 CHOOSE YOUR PET
+          </div>
           {ownedPets(save.pets, save.cards).length === 0 ? (
             <p className="mt-2 text-xs text-muted-foreground">
               No pets yet — beat a mini boss to make it join you.
@@ -463,7 +501,9 @@ export function Collection({
                 return (
                   <button
                     key={id}
-                    onClick={() => setSave((s) => ({ ...s, equippedPet: s.equippedPet === id ? null : id }))}
+                    onClick={() =>
+                      setSave((s) => ({ ...s, equippedPet: s.equippedPet === id ? null : id }))
+                    }
                     className={`flex items-center gap-2 rounded-xl border-2 p-2 text-left ${save.equippedPet === id ? "border-primary bg-primary/20" : "border-border bg-black/30"}`}
                   >
                     <img src={p.art} alt={p.name} className="h-12 w-12 object-contain" />
@@ -530,20 +570,28 @@ export function SettingsScreen({
     <Shell>
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-black text-primary">SETTINGS & CONTROLS</h2>
-        <button onClick={onBack} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold">
+        <button
+          onClick={onBack}
+          className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold"
+        >
           ← BACK
         </button>
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <div className={panel}>
-          <div className="text-xs font-black tracking-widest text-amber-300">⌨️ KEYBOARD (LAPTOP)</div>
+          <div className="text-xs font-black tracking-widest text-amber-300">
+            ⌨️ KEYBOARD (LAPTOP)
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Click a key box, then press the key you want to use for that action.
           </p>
           <div className="mt-3 space-y-2">
             {ACTIONS.map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg bg-black/30 px-3 py-2">
+              <div
+                key={a.id}
+                className="flex items-center justify-between gap-3 rounded-lg bg-black/30 px-3 py-2"
+              >
                 <div>
                   <div className="text-sm font-black text-foreground">{a.label}</div>
                   {a.hint && <div className="text-[10px] text-muted-foreground">{a.hint}</div>}
@@ -556,7 +604,9 @@ export function SettingsScreen({
                       : "border-border bg-card text-foreground"
                   }`}
                 >
-                  {listening === a.id ? "PRESS A KEY…" : save.keybinds[a.id].map(keyLabel).join(" / ")}
+                  {listening === a.id
+                    ? "PRESS A KEY…"
+                    : save.keybinds[a.id].map(keyLabel).join(" / ")}
                 </button>
               </div>
             ))}
@@ -586,7 +636,8 @@ export function SettingsScreen({
               className="mt-2 w-full accent-orange-500"
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
-              The whole bottom-left corner is a touch zone — the joystick appears wherever your thumb lands.
+              The whole bottom-left corner is a touch zone — the joystick appears wherever your
+              thumb lands.
             </p>
             <div className="mt-4 flex justify-center">
               <div

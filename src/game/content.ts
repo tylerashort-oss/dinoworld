@@ -612,15 +612,45 @@ export const CARDS: Record<string, CardDef> = {
   },
 };
 
-export const RARITY_STYLE: Record<Rarity, { border: string; glow: string; text: string; bg: string }> = {
-  COMMON: { border: "#9ca8b4", glow: "rgba(156,168,180,.45)", text: "#cfd8e0", bg: "linear-gradient(160deg,#2b3138,#171a1f)" },
-  RARE: { border: "#43b0ff", glow: "rgba(67,176,255,.5)", text: "#9bd6ff", bg: "linear-gradient(160deg,#12314a,#0d1620)" },
-  EPIC: { border: "#b45cff", glow: "rgba(180,92,255,.55)", text: "#dcaeff", bg: "linear-gradient(160deg,#31174d,#150d20)" },
-  LEGENDARY: { border: "#ffab26", glow: "rgba(255,171,38,.6)", text: "#ffd48a", bg: "linear-gradient(160deg,#4a2a06,#1d1206)" },
-  MYTHIC: { border: "#ff3d5e", glow: "rgba(255,61,94,.65)", text: "#ffb1bf", bg: "linear-gradient(160deg,#54101f,#210610)" },
+export const RARITY_STYLE: Record<
+  Rarity,
+  { border: string; glow: string; text: string; bg: string }
+> = {
+  COMMON: {
+    border: "#9ca8b4",
+    glow: "rgba(156,168,180,.45)",
+    text: "#cfd8e0",
+    bg: "linear-gradient(160deg,#2b3138,#171a1f)",
+  },
+  RARE: {
+    border: "#43b0ff",
+    glow: "rgba(67,176,255,.5)",
+    text: "#9bd6ff",
+    bg: "linear-gradient(160deg,#12314a,#0d1620)",
+  },
+  EPIC: {
+    border: "#b45cff",
+    glow: "rgba(180,92,255,.55)",
+    text: "#dcaeff",
+    bg: "linear-gradient(160deg,#31174d,#150d20)",
+  },
+  LEGENDARY: {
+    border: "#ffab26",
+    glow: "rgba(255,171,38,.6)",
+    text: "#ffd48a",
+    bg: "linear-gradient(160deg,#4a2a06,#1d1206)",
+  },
+  MYTHIC: {
+    border: "#ff3d5e",
+    glow: "rgba(255,61,94,.65)",
+    text: "#ffb1bf",
+    bg: "linear-gradient(160deg,#54101f,#210610)",
+  },
 };
-export const getWeapon = (id: string): WeaponDef => WEAPONS[id] ?? (WEAPONS["bone_sword"] as WeaponDef);
+export const getWeapon = (id: string): WeaponDef =>
+  WEAPONS[id] ?? (WEAPONS["bone_sword"] as WeaponDef);
 export const getCharacter = (id: string): CharacterDef =>
   CHARACTERS[id] ?? (CHARACTERS["rocket_boy"] as CharacterDef);
-export const getPet = (id: string | null | undefined): PetDef | null => (id ? PETS[id] ?? null : null);
+export const getPet = (id: string | null | undefined): PetDef | null =>
+  id ? (PETS[id] ?? null) : null;
 export const getCard = (id: string): CardDef | null => CARDS[id] ?? null;

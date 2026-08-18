@@ -156,8 +156,14 @@ export const POISON_AREAS: AreaDef[] = [
       ...bonesLine(4, 620, 520, 90, 40),
     ],
     waves: [
-      [{ type: "mini_fire_raptor", x: 1350, y: 700 }, { type: "sporeling", x: 900, y: 400 }],
-      [{ type: "mini_frost_raptor", x: 1350, y: 700 }, { type: "sporeling", x: 900, y: 1000 }],
+      [
+        { type: "mini_fire_raptor", x: 1350, y: 700 },
+        { type: "sporeling", x: 900, y: 400 },
+      ],
+      [
+        { type: "mini_frost_raptor", x: 1350, y: 700 },
+        { type: "sporeling", x: 900, y: 1000 },
+      ],
       [{ type: "mini_toxic_raptor", x: 1400, y: 700 }],
       [
         { type: "toxic_utahraptor", x: 1420, y: 700 },

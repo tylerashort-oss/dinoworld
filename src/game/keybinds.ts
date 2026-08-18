@@ -1,12 +1,4 @@
-export type ActionId =
-  | "attack"
-  | "pet"
-  | "jump"
-  | "up"
-  | "down"
-  | "left"
-  | "right"
-  | "pause";
+export type ActionId = "attack" | "pet" | "jump" | "up" | "down" | "left" | "right" | "pause";
 
 export type Keybinds = Record<ActionId, string[]>;
 

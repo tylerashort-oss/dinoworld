@@ -74,7 +74,11 @@ export function GameScreen({
         const card = getCard(ev.cardId);
         if (card) {
           update((s) => ({ ...s, cards: Array.from(new Set([...s.cards, card.id])) }));
-          setReward({ title: "HIDDEN CAVE DISCOVERED!", subtitle: "A rare card was hiding in here.", cards: [card] });
+          setReward({
+            title: "HIDDEN CAVE DISCOVERED!",
+            subtitle: "A rare card was hiding in here.",
+            cards: [card],
+          });
         }
         break;
       }
@@ -85,7 +89,13 @@ export function GameScreen({
             ? ["card_frost_bone_axe", "card_baby_frost_raptor", "card_mini_frost_raptor"]
             : ["card_fire_bone_axe", "card_baby_raptor", "card_mini_fire_raptor"];
         if (s0.character === "pink_explorer")
-          ids.push(jungle ? "card_toxic_utahraptor" : ice ? "card_frozen_utahraptor" : "card_fire_utahraptor");
+          ids.push(
+            jungle
+              ? "card_toxic_utahraptor"
+              : ice
+                ? "card_frozen_utahraptor"
+                : "card_fire_utahraptor",
+          );
         const cards = ids.map(getCard).filter(Boolean) as CardDef[];
         const bonus = s0.character === "pink_explorer" ? 120 : 80;
         const newWeapon = jungle ? "venom_bone_axe" : ice ? "frost_bone_axe" : "fire_bone_axe";
@@ -100,7 +110,10 @@ export function GameScreen({
           weapons: Array.from(new Set([...s.weapons, newWeapon])),
           equippedWeapon: upgradeFrom.includes(s.equippedWeapon) ? newWeapon : s.equippedWeapon,
           bones: s.bones + bonus,
-          flags: { ...s.flags, [jungle ? "jungleChestOpened" : ice ? "iceChestOpened" : "chestOpened"]: true },
+          flags: {
+            ...s.flags,
+            [jungle ? "jungleChestOpened" : ice ? "iceChestOpened" : "chestOpened"]: true,
+          },
         }));
         eng.setBones(s0.bones + bonus);
         if (upgradeFrom.includes(s0.equippedWeapon)) eng.setWeapon(newWeapon);
@@ -117,10 +130,26 @@ export function GameScreen({
         const petBosses: Record<string, { card: string; bones: number; label: string }> = {
           mini_fire_raptor: { card: "card_mini_fire_raptor", bones: 40, label: "MINI FIRE RAPTOR" },
           fire_utahraptor: { card: "card_fire_utahraptor", bones: 70, label: "FIRE UTAHRAPTOR" },
-          mini_frost_raptor: { card: "card_mini_frost_raptor", bones: 60, label: "MINI FROST RAPTOR" },
-          frozen_utahraptor: { card: "card_frozen_utahraptor", bones: 95, label: "FROZEN UTAHRAPTOR" },
-          mini_toxic_raptor: { card: "card_mini_toxic_raptor", bones: 85, label: "MINI TOXIC RAPTOR" },
-          toxic_utahraptor: { card: "card_toxic_utahraptor", bones: 130, label: "TOXIC UTAHRAPTOR" },
+          mini_frost_raptor: {
+            card: "card_mini_frost_raptor",
+            bones: 60,
+            label: "MINI FROST RAPTOR",
+          },
+          frozen_utahraptor: {
+            card: "card_frozen_utahraptor",
+            bones: 95,
+            label: "FROZEN UTAHRAPTOR",
+          },
+          mini_toxic_raptor: {
+            card: "card_mini_toxic_raptor",
+            bones: 85,
+            label: "MINI TOXIC RAPTOR",
+          },
+          toxic_utahraptor: {
+            card: "card_toxic_utahraptor",
+            bones: 130,
+            label: "TOXIC UTAHRAPTOR",
+          },
         };
         const pet = petBosses[ev.id];
         if (pet) {
@@ -250,7 +279,11 @@ export function GameScreen({
       bones: s.bones,
       openedChest:
         !!s.flags[
-          (s.world ?? 1) === 3 ? "jungleChestOpened" : (s.world ?? 1) === 2 ? "iceChestOpened" : "chestOpened"
+          (s.world ?? 1) === 3
+            ? "jungleChestOpened"
+            : (s.world ?? 1) === 2
+              ? "iceChestOpened"
+              : "chestOpened"
         ],
       foundCaves: {},
       keybinds: s.keybinds,
@@ -343,7 +376,9 @@ export function GameScreen({
       {/* boss bar */}
       {hud?.bossName && (
         <div className="pointer-events-none absolute left-1/2 top-3 w-[min(560px,60vw)] -translate-x-1/2 text-center">
-          <div className="text-xs font-black tracking-[0.2em] text-destructive drop-shadow">{hud.bossName}</div>
+          <div className="text-xs font-black tracking-[0.2em] text-destructive drop-shadow">
+            {hud.bossName}
+          </div>
           <div className="mt-1 h-4 overflow-hidden rounded-full border-2 border-black/70 bg-black/70">
             <div
               className="h-full bg-gradient-to-r from-red-700 via-red-500 to-orange-400"
@@ -355,7 +390,10 @@ export function GameScreen({
 
       {/* ---------- CONTROLS ---------- */}
       <div className="absolute bottom-2 left-2">
-        <Joystick size={save.joystickSize ?? 210} onChange={(v) => engineRef.current?.setInput(v)} />
+        <Joystick
+          size={save.joystickSize ?? 210}
+          onChange={(v) => engineRef.current?.setInput(v)}
+        />
       </div>
 
       <div className="absolute bottom-4 right-4 flex items-end gap-3">
@@ -407,11 +445,16 @@ export function GameScreen({
               <div className="flex h-[214px] w-[150px] flex-col items-center justify-center rounded-xl border-2 border-amber-300/70 bg-amber-900/30 text-center">
                 <div className="text-4xl">🦴</div>
                 <div className="mt-2 text-xl font-black text-amber-200">+{reward.bones}</div>
-                <div className="text-[10px] font-bold tracking-widest text-amber-300/80">BONUS BONES</div>
+                <div className="text-[10px] font-bold tracking-widest text-amber-300/80">
+                  BONUS BONES
+                </div>
               </div>
             ) : null}
           </div>
-          <button onClick={closeReward} className="mt-6 rounded-xl bg-primary px-8 py-3 text-lg font-black text-primary-foreground">
+          <button
+            onClick={closeReward}
+            className="mt-6 rounded-xl bg-primary px-8 py-3 text-lg font-black text-primary-foreground"
+          >
             CONTINUE
           </button>
         </Overlay>
@@ -458,8 +501,8 @@ export function GameScreen({
               <h2 className="text-3xl font-black text-primary md:text-5xl">WORLD 1 COMPLETE!</h2>
               <p className="mt-3 text-xl font-black text-sky-300">🧊 ICE WORLD UNLOCKED!</p>
               <p className="mt-2 max-w-md text-center text-sm text-muted-foreground">
-                Ice World is now playable on your world map. You kept the Legendary Fire Claw, the Mythic
-                Firesauras card and all of your pets.
+                Ice World is now playable on your world map. You kept the Legendary Fire Claw, the
+                Mythic Firesauras card and all of your pets.
               </p>
             </>
           ) : victory.world === 2 ? (
@@ -467,17 +510,19 @@ export function GameScreen({
               <h2 className="text-3xl font-black text-sky-300 md:text-5xl">WORLD 2 COMPLETE!</h2>
               <p className="mt-3 text-xl font-black text-emerald-300">🌴 POISON JUNGLE UNLOCKED!</p>
               <p className="mt-2 max-w-md text-center text-sm text-muted-foreground">
-                You beat Glacierus and claimed the Legendary Ice Claw. World 3, the Poison Jungle, is now
-                playable on your world map.
+                You beat Glacierus and claimed the Legendary Ice Claw. World 3, the Poison Jungle,
+                is now playable on your world map.
               </p>
             </>
           ) : (
             <>
-              <h2 className="text-3xl font-black text-emerald-300 md:text-5xl">WORLD 3 COMPLETE!</h2>
+              <h2 className="text-3xl font-black text-emerald-300 md:text-5xl">
+                WORLD 3 COMPLETE!
+              </h2>
               <p className="mt-3 text-xl font-black text-lime-300">🌴 VENOMUS IS YOUR PET!</p>
               <p className="mt-2 max-w-md text-center text-sm text-muted-foreground">
-                You cleared the Poison Jungle, claimed the Legendary Vine Claw and can now replay any jungle
-                level for bones.
+                You cleared the Poison Jungle, claimed the Legendary Vine Claw and can now replay
+                any jungle level for bones.
               </p>
             </>
           )}
@@ -494,7 +539,10 @@ export function GameScreen({
         <Overlay>
           <h2 className="text-3xl font-black text-foreground">PAUSED</h2>
           <div className="mt-6 flex flex-col gap-3">
-            <button onClick={() => setPaused(false)} className="rounded-xl bg-primary px-10 py-3 text-lg font-black text-primary-foreground">
+            <button
+              onClick={() => setPaused(false)}
+              className="rounded-xl bg-primary px-10 py-3 text-lg font-black text-primary-foreground"
+            >
               RESUME
             </button>
             <button
@@ -507,13 +555,22 @@ export function GameScreen({
             >
               SOUND: {save.sound ? "ON" : "OFF"}
             </button>
-            <button onClick={() => onQuit("settings")} className="rounded-xl border-2 border-border bg-card px-10 py-3 font-bold text-foreground">
+            <button
+              onClick={() => onQuit("settings")}
+              className="rounded-xl border-2 border-border bg-card px-10 py-3 font-bold text-foreground"
+            >
               ⚙️ SETTINGS & CONTROLS
             </button>
-            <button onClick={() => onQuit("camp")} className="rounded-xl border-2 border-border bg-card px-10 py-3 font-bold text-foreground">
+            <button
+              onClick={() => onQuit("camp")}
+              className="rounded-xl border-2 border-border bg-card px-10 py-3 font-bold text-foreground"
+            >
               🏕️ DINO CAMP
             </button>
-            <button onClick={() => onQuit("map")} className="rounded-xl border-2 border-border bg-card px-10 py-3 font-bold text-foreground">
+            <button
+              onClick={() => onQuit("map")}
+              className="rounded-xl border-2 border-border bg-card px-10 py-3 font-bold text-foreground"
+            >
               🗺️ WORLD MAP
             </button>
           </div>
