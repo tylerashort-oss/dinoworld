@@ -349,7 +349,10 @@ export class GameEngine {
     this.pvz = 0;
     this.petX = this.px - 50;
     this.petY = this.py + 30;
+    this.petPhase = 0;
+    this.petAutoCd = 2;
     this.hp = this.maxHp;
+    this.shield = this.shieldMax;
     this.dead = false;
     this.invuln = 1;
     this.attackCd = 0;
@@ -451,6 +454,7 @@ export class GameEngine {
     const w = getWeapon(this.weaponId);
     this.attackCd = w.cooldown;
     this.attackAnim = 0.22;
+    const wDamage = Math.round(w.damage * this.damageMul);
     playSfx("attack");
     // Kid-friendly auto-aim: if an enemy is in reach, swing at the closest one.
     const assist = this.nearestEnemy(this.px, this.py);
@@ -486,7 +490,7 @@ export class GameEngine {
       let diff = Math.abs(((a - ang + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
       diff = Math.abs(diff);
       if (diff > w.arc) continue;
-      this.damageEnemy(e, w.damage + Math.floor(Math.random() * 4));
+      this.damageEnemy(e, wDamage + Math.floor(Math.random() * 4));
       hitAny = true;
     }
     // chest can be "hit" open too
@@ -502,9 +506,10 @@ export class GameEngine {
       vx: Math.cos(ang) * 720,
       vy: Math.sin(ang) * 720,
       r: 12,
-      dmg: Math.max(4, Math.round(w.damage * 0.6)),
+      dmg: Math.max(4, Math.round(wDamage * 0.6)),
       life: 1.4,
       fromPlayer: true,
+      ice: this.isIce,
     });
   }
 
@@ -517,11 +522,18 @@ export class GameEngine {
 
   petAttack() {
     if (this.dead || this.paused || !this.petId || this.petCd > 0) return;
+    this.petStrike();
+  }
+
+  /** The pet lunges at the nearest enemy and claws it. */
+  private petStrike() {
+    if (this.dead || !this.petId) return;
     const pet = getPet(this.petId);
     if (!pet) return;
     const target = this.nearestEnemy(this.petX, this.petY);
     if (!target) return;
     this.petCd = pet.cooldown;
+    this.petAutoCd = pet.cooldown * 1.9;
     // pet lunges: instant strike + flame trail
     const steps = 14;
     for (let i = 0; i < steps; i++) {
@@ -533,13 +545,17 @@ export class GameEngine {
         vy: (Math.random() - 0.5) * 40,
         life: 0.4,
         maxLife: 0.4,
-        color: "#ff8a2b",
+        color: this.isIce ? "#8fe4ff" : "#ff8a2b",
         size: 8,
       });
     }
     this.petX = target.x - 40;
     this.petY = target.y + 20;
-    this.damageEnemy(target, pet.damage + Math.floor(Math.random() * 6));
+    const hit = Math.round(pet.damage * this.petMul);
+    for (let i = 0; i < this.petHits; i++) {
+      if (target.hp <= 0) break;
+      this.damageEnemy(target, hit + Math.floor(Math.random() * 6));
+    }
     playSfx("hit");
   }
 
