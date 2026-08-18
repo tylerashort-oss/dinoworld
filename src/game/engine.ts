@@ -645,6 +645,7 @@ export class GameEngine {
       if (a === "attack") this.setAttackHeld(true);
       if (a === "pet") this.petAttack();
       if (a === "jump") this.jump();
+      if (a === "dash") this.dash();
       if (a === "pause") this.opts.onEvent({ type: "pauseRequested" });
     }
   };
@@ -738,6 +739,38 @@ export class GameEngine {
     if (this.pz > 0) return;
     this.pvz = 420;
     playSfx("jump");
+  }
+
+  /** Pink Explorer's escape move: a short burst of speed with i-frames. */
+  dash() {
+    if (!this.dashEnabled || this.dead || this.paused) return;
+    if (this.dashCd > 0 || this.dashTime > 0) return;
+    const mag = Math.hypot(this.aimX, this.aimY);
+    this.dashX = mag > 0.05 ? this.aimX / mag : this.facing;
+    this.dashY = mag > 0.05 ? this.aimY / mag : 0;
+    this.dashTime = 0.18;
+    this.dashCd = this.dashCooldown;
+    this.invuln = Math.max(this.invuln, 0.34);
+    playSfx("jump");
+    for (let i = 0; i < 8; i++)
+      pushCapped(
+        this.particles,
+        {
+          x: this.px - this.dashX * 14,
+          y: this.py + 10 - this.dashY * 14,
+          vx: -this.dashX * (80 + Math.random() * 90),
+          vy: -this.dashY * (80 + Math.random() * 90) - 20,
+          life: 0.3,
+          maxLife: 0.3,
+          color: "rgba(255,170,220,.75)",
+          size: 6 + Math.random() * 5,
+        },
+        MAX_PARTICLES,
+      );
+  }
+
+  canDash() {
+    return this.dashEnabled;
   }
 
   petAttack() {
@@ -889,6 +922,11 @@ export class GameEngine {
     this.opts.onEvent({ type: "bonesChanged", bones: this.bones });
   }
 
+  /** Award reward bones through the engine so it stays the single source of truth. */
+  addBonusBones(n: number) {
+    this.addBones(n);
+  }
+
   getDebug() {
     return {
       x: Math.round(this.px),
@@ -961,6 +999,8 @@ export class GameEngine {
       attackReady: clamp(1 - this.attackCd / w.cooldown, 0, 1),
       petName: getPet(this.petId)?.name ?? null,
       weaponName: w.name,
+      hasDash: this.dashEnabled,
+      dashReady: this.dashEnabled ? clamp(1 - this.dashCd / this.dashCooldown, 0, 1) : 0,
     });
   }
 
