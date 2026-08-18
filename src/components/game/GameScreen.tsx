@@ -72,8 +72,13 @@ export function GameScreen({
         break;
       case "caveFound": {
         const card = getCard(ev.cardId);
+        const areaId = ev.areaId;
         if (card) {
-          update((s) => ({ ...s, cards: Array.from(new Set([...s.cards, card.id])) }));
+          update((s) => ({
+            ...s,
+            cards: Array.from(new Set([...s.cards, card.id])),
+            foundCaves: { ...(s.foundCaves ?? {}), [areaId]: true },
+          }));
           setReward({
             title: "HIDDEN CAVE DISCOVERED!",
             subtitle: "A rare card was hiding in here.",
@@ -109,13 +114,12 @@ export function GameScreen({
           cards: Array.from(new Set([...s.cards, ...ids])),
           weapons: Array.from(new Set([...s.weapons, newWeapon])),
           equippedWeapon: upgradeFrom.includes(s.equippedWeapon) ? newWeapon : s.equippedWeapon,
-          bones: s.bones + bonus,
           flags: {
             ...s.flags,
             [jungle ? "jungleChestOpened" : ice ? "iceChestOpened" : "chestOpened"]: true,
           },
         }));
-        eng.setBones(s0.bones + bonus);
+        eng.addBonusBones(bonus);
         if (upgradeFrom.includes(s0.equippedWeapon)) eng.setWeapon(newWeapon);
         playSfx("card");
         setReward({
@@ -159,10 +163,9 @@ export function GameScreen({
             pets: Array.from(new Set([...s.pets, petId])),
             equippedPet: petId,
             cards: Array.from(new Set([...s.cards, pet.card])),
-            bones: s.bones + pet.bones,
           }));
           eng.setPet(petId);
-          eng.setBones(s0.bones + pet.bones);
+          eng.addBonusBones(pet.bones);
           const card = getCard(pet.card);
           setReward({
             title: `${pet.label} DEFEATED!`,
