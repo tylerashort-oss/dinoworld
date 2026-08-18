@@ -1,11 +1,11 @@
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 
 /**
  * Large, floating touch joystick.
  * The whole bottom-left corner is a touch zone: wherever the thumb lands, the
  * stick re-centres there so a slightly-off tap still moves the hero.
  */
-export function Joystick({
+export const Joystick = memo(function Joystick({
   onChange,
   size = 210,
 }: {
