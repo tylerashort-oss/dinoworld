@@ -675,6 +675,7 @@ export class GameEngine {
     if (!wave) return;
     for (const s of wave) {
       const st = ENEMY_STATS[s.type]!;
+      const runSheet = RUN_SHEETS[st.sprite];
       this.enemies.push({
         type: s.type,
         x: s.x,
@@ -691,6 +692,10 @@ export class GameEngine {
         boss: st.boss,
         name: st.name,
         sprite: this.images[st.sprite] ?? null,
+        runSheet: this.images[`${st.sprite}__run`] ?? null,
+        runFrames: runSheet?.frames ?? 4,
+        runPhase: Math.random(),
+        flying: !!st.flying,
         shootTimer: 1 + Math.random() * 2,
         hitFlash: 0,
         contactCd: 0,
