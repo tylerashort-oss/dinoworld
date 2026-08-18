@@ -1307,6 +1307,7 @@ export class GameEngine {
     size: number,
     facing: number,
     flash = 0,
+    frame?: { index: number; count: number },
   ) {
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,.45)";
@@ -1324,11 +1325,14 @@ export class GameEngine {
       return;
     }
     const h = size;
-    const w = (img.naturalWidth / img.naturalHeight) * size;
+    const srcW = frame ? img.naturalWidth / frame.count : img.naturalWidth;
+    const srcX = frame ? srcW * (frame.index % frame.count) : 0;
+    const w = (srcW / img.naturalHeight) * size;
     ctx.save();
     ctx.translate(x, y - z);
     ctx.scale(facing >= 0 ? 1 : -1, 1);
-    ctx.drawImage(img, -w / 2, -h * 0.86, w, h);
+    if (frame) ctx.drawImage(img, srcX, 0, srcW, img.naturalHeight, -w / 2, -h * 0.86, w, h);
+    else ctx.drawImage(img, -w / 2, -h * 0.86, w, h);
     if (flash > 0) {
       ctx.globalCompositeOperation = "source-atop";
       ctx.globalAlpha = Math.min(0.85, flash * 4);
@@ -1369,9 +1373,22 @@ export class GameEngine {
 
   private drawPlayer(ctx: CanvasRenderingContext2D) {
     const flick = this.invuln > 0 && Math.floor(this.time * 20) % 2 === 0;
+    const runSheet = this.images["playerRun"] ?? null;
+    const sheetReady = !!runSheet && runSheet.complete && runSheet.naturalWidth > 0;
+    const running = this.pz <= 0 && this.runSpeed > 30;
+    const airborne = this.pz > 0;
+    const bob = running ? Math.abs(Math.sin(this.runPhase * Math.PI * 2)) * 5 : Math.sin(this.time * 2.4) * 2;
     ctx.save();
     if (flick) ctx.globalAlpha = 0.45;
-    this.drawSprite(ctx, this.images["player"] ?? null, this.px, this.py, this.pz, 118, this.facing);
+    if (sheetReady && (running || airborne)) {
+      const index = airborne ? 2 : Math.floor(this.runPhase * this.runFrames) % this.runFrames;
+      this.drawSprite(ctx, runSheet, this.px, this.py, this.pz + bob, 118, this.facing, 0, {
+        index,
+        count: this.runFrames,
+      });
+    } else {
+      this.drawSprite(ctx, this.images["player"] ?? null, this.px, this.py, this.pz + bob, 118, this.facing);
+    }
     ctx.restore();
 
     if (this.attackAnim > 0) {
