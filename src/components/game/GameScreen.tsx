@@ -359,14 +359,7 @@ export function GameScreen({
       world: s.world ?? 1,
       areaIndex: s.areaIndex,
       bones: s.bones,
-      openedChest:
-        !!s.flags[
-          (s.world ?? 1) === 3
-            ? "jungleChestOpened"
-            : (s.world ?? 1) === 2
-              ? "iceChestOpened"
-              : "chestOpened"
-        ],
+      openedChest: !!s.flags[(WORLD_LOOT[s.world ?? 1] ?? WORLD_LOOT[1]!).chestFlag],
       foundCaves: s.foundCaves ?? {},
       keybinds: s.keybinds,
       difficulty: s.world ?? 1,
