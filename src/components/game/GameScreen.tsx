@@ -57,7 +57,9 @@ export function GameScreen({
     const eng = engineRef.current;
     if (!eng) return;
     const s0 = saveRef.current;
-    const ice = (s0.world ?? 1) === 2;
+    const world = s0.world ?? 1;
+    const ice = world === 2;
+    const jungle = world === 3;
     switch (ev.type) {
       case "bonesChanged":
         update((s) => ({ ...s, bones: ev.bones }));
@@ -77,21 +79,28 @@ export function GameScreen({
         break;
       }
       case "chestOpened": {
-        const ids = ice
-          ? ["card_frost_bone_axe", "card_baby_frost_raptor", "card_mini_frost_raptor"]
-          : ["card_fire_bone_axe", "card_baby_raptor", "card_mini_fire_raptor"];
-        if (s0.character === "pink_explorer") ids.push(ice ? "card_frozen_utahraptor" : "card_fire_utahraptor");
+        const ids = jungle
+          ? ["card_venom_bone_axe", "card_baby_toxic_raptor", "card_mini_toxic_raptor"]
+          : ice
+            ? ["card_frost_bone_axe", "card_baby_frost_raptor", "card_mini_frost_raptor"]
+            : ["card_fire_bone_axe", "card_baby_raptor", "card_mini_fire_raptor"];
+        if (s0.character === "pink_explorer")
+          ids.push(jungle ? "card_toxic_utahraptor" : ice ? "card_frozen_utahraptor" : "card_fire_utahraptor");
         const cards = ids.map(getCard).filter(Boolean) as CardDef[];
         const bonus = s0.character === "pink_explorer" ? 120 : 80;
-        const newWeapon = ice ? "frost_bone_axe" : "fire_bone_axe";
-        const upgradeFrom = ice ? ["bone_sword", "fire_bone_axe"] : ["bone_sword"];
+        const newWeapon = jungle ? "venom_bone_axe" : ice ? "frost_bone_axe" : "fire_bone_axe";
+        const upgradeFrom = jungle
+          ? ["bone_sword", "fire_bone_axe", "frost_bone_axe"]
+          : ice
+            ? ["bone_sword", "fire_bone_axe"]
+            : ["bone_sword"];
         update((s) => ({
           ...s,
           cards: Array.from(new Set([...s.cards, ...ids])),
           weapons: Array.from(new Set([...s.weapons, newWeapon])),
           equippedWeapon: upgradeFrom.includes(s.equippedWeapon) ? newWeapon : s.equippedWeapon,
           bones: s.bones + bonus,
-          flags: { ...s.flags, [ice ? "iceChestOpened" : "chestOpened"]: true },
+          flags: { ...s.flags, [jungle ? "jungleChestOpened" : ice ? "iceChestOpened" : "chestOpened"]: true },
         }));
         eng.setBones(s0.bones + bonus);
         if (upgradeFrom.includes(s0.equippedWeapon)) eng.setWeapon(newWeapon);
@@ -110,6 +119,8 @@ export function GameScreen({
           fire_utahraptor: { card: "card_fire_utahraptor", bones: 70, label: "FIRE UTAHRAPTOR" },
           mini_frost_raptor: { card: "card_mini_frost_raptor", bones: 60, label: "MINI FROST RAPTOR" },
           frozen_utahraptor: { card: "card_frozen_utahraptor", bones: 95, label: "FROZEN UTAHRAPTOR" },
+          mini_toxic_raptor: { card: "card_mini_toxic_raptor", bones: 85, label: "MINI TOXIC RAPTOR" },
+          toxic_utahraptor: { card: "card_toxic_utahraptor", bones: 130, label: "TOXIC UTAHRAPTOR" },
         };
         const pet = petBosses[ev.id];
         if (pet) {
@@ -170,6 +181,26 @@ export function GameScreen({
             bones: 450,
             finalVictory: true,
           });
+        } else if (ev.id === "venomus") {
+          const ids = ["card_venomus", "card_vine_claw"];
+          update((s) => ({
+            ...s,
+            cards: Array.from(new Set([...s.cards, ...ids])),
+            pets: Array.from(new Set([...s.pets, "venomus"])),
+            weapons: Array.from(new Set([...s.weapons, "vine_claw"])),
+            equippedWeapon: "vine_claw",
+            bones: s.bones + 600,
+            world3Complete: true,
+          }));
+          eng.setWeapon("vine_claw");
+          eng.setBones(s0.bones + 600);
+          setReward({
+            title: "VENOMUS DEFEATED!",
+            subtitle: "MYTHIC card + LEGENDARY VINE CLAW + 600 bones!",
+            cards: ids.map(getCard).filter(Boolean) as CardDef[],
+            bones: 600,
+            finalVictory: true,
+          });
         }
         break;
       }
@@ -217,7 +248,10 @@ export function GameScreen({
       world: s.world ?? 1,
       areaIndex: s.areaIndex,
       bones: s.bones,
-      openedChest: !!s.flags[(s.world ?? 1) === 2 ? "iceChestOpened" : "chestOpened"],
+      openedChest:
+        !!s.flags[
+          (s.world ?? 1) === 3 ? "jungleChestOpened" : (s.world ?? 1) === 2 ? "iceChestOpened" : "chestOpened"
+        ],
       foundCaves: {},
       keybinds: s.keybinds,
       difficulty: s.world ?? 1,

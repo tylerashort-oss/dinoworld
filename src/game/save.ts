@@ -22,6 +22,7 @@ export interface SaveData {
   world2Unlocked: boolean;
   world2Complete: boolean;
   world3Unlocked: boolean;
+  world3Complete: boolean;
   /** Bone Forge upgrade levels. */
   upgrades: Record<string, number>;
   /** Spare lives bought with bones. */
@@ -47,12 +48,13 @@ export function defaultSave(): SaveData {
     cards: ["card_rocket_boy", "card_pink_explorer", "card_bone_sword"],
     world: 1,
     areaIndex: 0,
-    progress: { "1": 0, "2": 0 },
-    checkpoints: { "1": 0, "2": 0 },
+    progress: { "1": 0, "2": 0, "3": 0 },
+    checkpoints: { "1": 0, "2": 0, "3": 0 },
     world1Complete: false,
     world2Unlocked: false,
     world2Complete: false,
     world3Unlocked: false,
+    world3Complete: false,
     upgrades: { maxHp: 0, damage: 0, petPower: 0 },
     extraLives: 0,
     sound: true,
@@ -70,8 +72,8 @@ export function loadSave(): SaveData {
     const parsed = JSON.parse(raw) as Partial<SaveData>;
     const merged = { ...defaultSave(), ...parsed } as SaveData;
     merged.keybinds = normalizeKeybinds(parsed.keybinds);
-    merged.progress = { "1": 0, "2": 0, ...(parsed.progress ?? {}) };
-    merged.checkpoints = { "1": 0, "2": 0, ...(parsed.checkpoints ?? {}) };
+    merged.progress = { "1": 0, "2": 0, "3": 0, ...(parsed.progress ?? {}) };
+    merged.checkpoints = { "1": 0, "2": 0, "3": 0, ...(parsed.checkpoints ?? {}) };
     merged.upgrades = { maxHp: 0, damage: 0, petPower: 0, ...(parsed.upgrades ?? {}) };
     merged.extraLives = parsed.extraLives ?? 0;
     if (!merged.world) merged.world = 1;
