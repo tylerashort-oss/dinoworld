@@ -700,11 +700,34 @@ export class GameEngine {
     const base = 250 * this.speedMul * (inLava ? 0.6 : 1);
     const nx = this.px + ix * base * dt;
     const ny = this.py + iy * base * dt;
+    const prevX = this.px;
+    const prevY = this.py;
     this.px = clamp(nx, 30, area.w - 30);
     this.py = clamp(ny, 30, area.h - 30);
     if (this.pz <= 0) this.resolveRocks();
     this.px = clamp(this.px, 30, area.w - 30);
     this.py = clamp(this.py, 30, area.h - 30);
+
+    // ---- run cycle driven by actual distance moved
+    const moved = Math.hypot(this.px - prevX, this.py - prevY);
+    this.runSpeed = dt > 0 ? moved / dt : 0;
+    if (this.pz <= 0 && moved > 0.4) {
+      const prevPhase = this.runPhase;
+      this.runPhase += moved / 55;
+      // dust puff each time a foot plants (whole-frame boundary)
+      if (Math.floor(prevPhase * this.runFrames) !== Math.floor(this.runPhase * this.runFrames)) {
+        this.particles.push({
+          x: this.px - this.facing * 12 + (Math.random() - 0.5) * 10,
+          y: this.py + 12,
+          vx: -this.facing * (30 + Math.random() * 40),
+          vy: -30 - Math.random() * 30,
+          life: 0.35,
+          maxLife: 0.35,
+          color: "rgba(255,200,150,.55)",
+          size: 5 + Math.random() * 4,
+        });
+      }
+    }
 
     if (mag > 0.05) {
       this.aimX = ix;
