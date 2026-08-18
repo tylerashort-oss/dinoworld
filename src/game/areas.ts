@@ -10,7 +10,12 @@ export type EnemyType =
   | "fireling"
   | "mini_fire_raptor"
   | "fire_utahraptor"
-  | "firesauras";
+  | "firesauras"
+  | "frost_pterodactyl"
+  | "snowling"
+  | "mini_frost_raptor"
+  | "frozen_utahraptor"
+  | "glacierus";
 
 export interface SpawnDef {
   type: EnemyType;
@@ -34,6 +39,10 @@ export interface AreaDef {
   cave?: { x: number; y: number; cardId: string };
   eruptions: number; // seconds between eruptions, 0 = none
   cave_dark?: boolean;
+  /** Visual theme for ground, hazard pools and rocks. */
+  theme?: "fire" | "ice";
+  /** Clearing this area stores a respawn checkpoint. */
+  checkpoint?: boolean;
 }
 
 const bonesLine = (n: number, x: number, y: number, dx: number, dy: number) =>
