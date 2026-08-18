@@ -329,6 +329,18 @@ export const PETS: Record<string, PetDef> = {
 };
 
 /** Every pet card maps to a playable pet. */
+export const PET_SPRITE: Record<string, string> = {
+  baby_raptor: "mini_fire_raptor",
+  baby_frost_raptor: "mini_frost_raptor",
+  baby_toxic_raptor: "mini_toxic_raptor",
+  ember_pterodactyl: "pterodactyl",
+  frost_pterodactyl: "frost_pterodactyl",
+  vine_pterodactyl: "vine_pterodactyl",
+};
+
+/** Sprite/run-sheet key used to draw a pet. */
+export const petSpriteKey = (petId: string) => PET_SPRITE[petId] ?? petId;
+
 export const CARD_TO_PET: Record<string, string> = {
   card_mini_fire_raptor: "mini_fire_raptor",
   card_fire_utahraptor: "fire_utahraptor",

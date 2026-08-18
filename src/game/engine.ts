@@ -1,6 +1,6 @@
 import { AREAS, type AreaDef, type EnemyType } from "./areas";
 import { getAreas } from "./worlds";
-import { RUN_SHEETS, SPRITES, getCharacter, getPet, getWeapon } from "./content";
+import { RUN_SHEETS, SPRITES, getCharacter, getPet, getWeapon, petSpriteKey } from "./content";
 import { defaultKeybinds, type ActionId, type Keybinds } from "./keybinds";
 import { playSfx } from "./audio";
 
@@ -1795,15 +1795,16 @@ export class GameEngine {
     if (!this.petId) return;
     const pet = getPet(this.petId);
     if (!pet) return;
-    const sheet = this.images[`${this.petId}__run`] ?? null;
-    const frames = RUN_SHEETS[this.petId]?.frames ?? 4;
+    const key = petSpriteKey(this.petId);
+    const sheet = this.images[`${key}__run`] ?? null;
+    const frames = RUN_SHEETS[key]?.frames ?? 4;
     const ready = !!sheet && sheet.complete && sheet.naturalWidth > 0;
     const bob = Math.abs(Math.sin(this.petPhase * Math.PI * 2)) * 4;
     if (ready) {
       const index = Math.floor(this.petPhase * frames) % frames;
       this.drawSprite(ctx, sheet, this.petX, this.petY, bob, 78, this.petFacing, 0, { index, count: frames });
     } else {
-      this.drawSprite(ctx, this.images[this.petId] ?? null, this.petX, this.petY, bob, 78, this.petFacing);
+      this.drawSprite(ctx, this.images[key] ?? null, this.petX, this.petY, bob, 78, this.petFacing);
     }
   }
 
