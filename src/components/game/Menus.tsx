@@ -271,13 +271,12 @@ export function DinoCamp({
 
         <div className={panel}>
           <div className="text-xs font-black tracking-widest text-amber-300">PETS</div>
-          {save.pets.length === 0 && (
+          {ownedPets(save.pets, save.cards).length === 0 && (
             <p className="mt-2 text-xs text-muted-foreground">No pets yet — defeat Mini Fire Raptor to get one!</p>
           )}
-          <div className="mt-2 space-y-2">
-            {save.pets.map((id) => {
-              const p = PETS[id];
-              if (!p) return null;
+          <div className="mt-2 max-h-72 space-y-2 overflow-y-auto">
+            {ownedPets(save.pets, save.cards).map((p) => {
+              const id = p.id;
               return (
                 <button
                   key={id}
