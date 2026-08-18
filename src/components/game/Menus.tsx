@@ -9,6 +9,7 @@ import {
   WEAPONS,
   getCharacter,
   getCard,
+  ownedPets,
   upgradeCost,
   type CardType,
 } from "@/game/content";
