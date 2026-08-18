@@ -20,13 +20,15 @@ export interface HudState {
   attackReady: number;
   petName: string | null;
   weaponName: string;
+  hasDash: boolean;
+  dashReady: number;
 }
 
 export type GameEvent =
   | { type: "death" }
   | { type: "bossDefeated"; id: EnemyType }
   | { type: "chestOpened" }
-  | { type: "caveFound"; cardId: string }
+  | { type: "caveFound"; cardId: string; areaId: string }
   | { type: "areaExit"; areaIndex: number }
   | { type: "bonesChanged"; bones: number }
   | { type: "pauseRequested" }
@@ -53,6 +55,8 @@ interface EngineOpts {
   petHits?: number;
   magnet?: number;
   shield?: number;
+  /** Pink Explorer's dash. */
+  dash?: boolean;
   onHud: (h: HudState) => void;
   onEvent: (e: GameEvent) => void;
 }
