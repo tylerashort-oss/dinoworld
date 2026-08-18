@@ -90,4 +90,4 @@ export const Joystick = memo(function Joystick({
       </div>
     </div>
   );
-}
+});
