@@ -1142,6 +1142,24 @@ export class GameEngine {
   private hurtPlayer(dmg: number, continuous = false) {
     if (this.dead) return;
     if (!continuous && this.invuln > 0) return;
+    if (!continuous && this.shield > 0) {
+      this.shield -= 1;
+      this.invuln = 1.2;
+      this.banner("SHIELD BLOCKED THE HIT!");
+      playSfx("hurt");
+      for (let i = 0; i < 18; i++)
+        this.particles.push({
+          x: this.px,
+          y: this.py - 20,
+          vx: (Math.random() - 0.5) * 320,
+          vy: (Math.random() - 0.5) * 320,
+          life: 0.5,
+          maxLife: 0.5,
+          color: i % 2 ? "#ffd1f0" : "#ff7ad1",
+          size: 6,
+        });
+      return;
+    }
     this.hp -= dmg;
     if (!continuous) {
       this.invuln = 0.85;
