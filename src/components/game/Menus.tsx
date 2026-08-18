@@ -453,15 +453,14 @@ export function Collection({
       {tab === "PET" && (
         <div className={`${panel} mt-4`}>
           <div className="text-xs font-black tracking-widest text-amber-300">🦖 CHOOSE YOUR PET</div>
-          {save.pets.length === 0 ? (
+          {ownedPets(save.pets, save.cards).length === 0 ? (
             <p className="mt-2 text-xs text-muted-foreground">
               No pets yet — beat a mini boss to make it join you.
             </p>
           ) : (
             <div className="mt-2 flex flex-wrap gap-2">
-              {save.pets.map((id) => {
-                const p = PETS[id];
-                if (!p) return null;
+              {ownedPets(save.pets, save.cards).map((p) => {
+                const id = p.id;
                 return (
                   <button
                     key={id}
