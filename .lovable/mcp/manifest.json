@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "dino-quest-saga",
+      "version": "0.1.0",
+      "title": "Dino Quest Saga"
+    },
+    "tools": [
+      {
+        "name": "list_worlds",
+        "title": "List worlds",
+        "description": "List the worlds of Dino Quest with their theme, final boss and area count.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_area",
+        "title": "Get area details",
+        "description": "Get the layout and enemy waves of one Dino Quest area (level), by world id and area id or index.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "worldId": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "World id: 1 Volcanic Lands, 2 Ice World, 3 Poison Jungle."
+            },
+            "area": {
+              "type": "string",
+              "description": "Area id (e.g. 'lava_fields') or 1-based index as a string."
+            }
+          },
+          "required": [
+            "worldId",
+            "area"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_collection",
+        "title": "List collection",
+        "description": "List Dino Quest collectibles: playable characters, weapons, pets or collector cards with their stats.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "characters",
+                "weapons",
+                "pets",
+                "cards"
+              ],
+              "description": "Which part of the collection to list."
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_bone_forge",
+        "title": "List Bone Forge upgrades",
+        "description": "List the Bone Forge upgrades players buy with bones, including the cost of every level.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
