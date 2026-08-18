@@ -1,5 +1,7 @@
 import rocketBoyImg from "@/assets/rocket-boy.png";
 import pinkExplorerImg from "@/assets/pink-explorer.png";
+import rocketBoyRunImg from "@/assets/rocket-boy-run.png";
+import pinkExplorerRunImg from "@/assets/pink-explorer-run.png";
 import pterodactylImg from "@/assets/pterodactyl.png";
 import miniRaptorImg from "@/assets/mini-fire-raptor.png";
 import utahraptorImg from "@/assets/fire-utahraptor.png";
@@ -13,6 +15,11 @@ export const SPRITES = {
   fire_utahraptor: utahraptorImg,
   firesauras: firesaurasImg,
 } as const;
+
+export const RUN_SHEETS: Record<string, { src: string; frames: number }> = {
+  rocket_boy: { src: rocketBoyRunImg, frames: 4 },
+  pink_explorer: { src: pinkExplorerRunImg, frames: 4 },
+};
 
 export type Rarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "MYTHIC";
 export type CardType = "CHARACTER" | "WEAPON" | "PET";
