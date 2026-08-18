@@ -947,7 +947,12 @@ export class GameEngine {
       const ang = Math.atan2(this.py - e.y, this.px - e.x);
       e.facing = this.px > e.x ? 1 : -1;
 
-      if (e.boss && (e.type === "firesauras" || e.type === "glacierus") && !e.enraged && e.hp < e.maxHp * 0.5) {
+      if (
+        e.boss &&
+        (e.type === "firesauras" || e.type === "glacierus" || e.type === "venomus") &&
+        !e.enraged &&
+        e.hp < e.maxHp * 0.5
+      ) {
         e.enraged = true;
         e.speed = e.speed * 1.5;
         this.banner(`${e.name} IS ENRAGED!`);
@@ -964,7 +969,7 @@ export class GameEngine {
           e.shootTimer = 2.2;
           this.shoot(e.x, e.y, ang, 260, 9);
         }
-      } else if (e.type === "firesauras" || e.type === "glacierus") {
+      } else if (e.type === "firesauras" || e.type === "glacierus" || e.type === "venomus") {
         const spd = e.speed * (d > 170 ? 1 : 0);
         e.x += Math.cos(ang) * spd * dt;
         e.y += Math.sin(ang) * spd * dt;
@@ -1250,7 +1255,16 @@ export class GameEngine {
     t.height = 128;
     const c = t.getContext("2d");
     if (!c) return null;
-    if (this.isIce) {
+    if (this.theme === "poison") {
+      c.fillStyle = this.area.cave_dark ? "#111f14" : "#1b3320";
+      c.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 240; i++) {
+        const v = Math.random();
+        c.fillStyle =
+          v > 0.9 ? "rgba(150,240,110,0.20)" : v > 0.55 ? "rgba(255,255,255,0.04)" : "rgba(0,25,10,0.28)";
+        c.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 4, 1 + Math.random() * 4);
+      }
+    } else if (this.isIce) {
       c.fillStyle = this.area.cave_dark ? "#152233" : "#20344a";
       c.fillRect(0, 0, 128, 128);
       for (let i = 0; i < 240; i++) {
@@ -1310,8 +1324,8 @@ export class GameEngine {
       this.area.h * 0.4,
       Math.max(this.area.w, this.area.h) * 0.7,
     );
-    g.addColorStop(0, this.isIce ? "rgba(150,220,255,0.10)" : "rgba(255,90,20,0.10)");
-    g.addColorStop(1, this.isIce ? "rgba(0,10,30,0.45)" : "rgba(0,0,0,0.45)");
+    g.addColorStop(0, this.tc("rgba(255,90,20,0.10)", "rgba(150,220,255,0.10)", "rgba(140,255,90,0.10)"));
+    g.addColorStop(1, this.tc("rgba(0,0,0,0.45)", "rgba(0,10,30,0.45)", "rgba(0,20,8,0.45)"));
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.area.w, this.area.h);
 

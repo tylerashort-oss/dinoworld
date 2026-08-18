@@ -254,6 +254,14 @@ export const PETS: Record<string, PetDef> = {
     cooldown: 1.3,
     description: "Hatched in a snowdrift. Very cold, very cross.",
   },
+  baby_toxic_raptor: {
+    id: "baby_toxic_raptor",
+    name: "Baby Toxic Raptor",
+    art: miniToxicRaptorImg,
+    damage: 34,
+    cooldown: 1.3,
+    description: "Hatched in a spore cloud. Sneezes venom.",
+  },
   ember_pterodactyl: {
     id: "ember_pterodactyl",
     name: "Ember Pterodactyl",
