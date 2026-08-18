@@ -329,3 +329,111 @@ export function Collection({ save, onBack }: { save: SaveData; onBack: () => voi
     </Shell>
   );
 }
+export function SettingsScreen({
+  save,
+  setSave,
+  onBack,
+}: {
+  save: SaveData;
+  setSave: (fn: (s: SaveData) => SaveData) => void;
+  onBack: () => void;
+}) {
+  const [listening, setListening] = useState<ActionId | null>(null);
+
+  useEffect(() => {
+    if (!listening) return;
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault();
+      if (e.code === "Escape" && listening !== "pause") {
+        setListening(null);
+        return;
+      }
+      setSave((s) => ({ ...s, keybinds: rebind(s.keybinds, listening, e.code) }));
+      setListening(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [listening, setSave]);
+
+  const joy = save.joystickSize ?? 210;
+
+  return (
+    <Shell>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-black text-primary">SETTINGS & CONTROLS</h2>
+        <button onClick={onBack} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold">
+          ← BACK
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className={panel}>
+          <div className="text-xs font-black tracking-widest text-amber-300">⌨️ KEYBOARD (LAPTOP)</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Click a key box, then press the key you want to use for that action.
+          </p>
+          <div className="mt-3 space-y-2">
+            {ACTIONS.map((a) => (
+              <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg bg-black/30 px-3 py-2">
+                <div>
+                  <div className="text-sm font-black text-foreground">{a.label}</div>
+                  {a.hint && <div className="text-[10px] text-muted-foreground">{a.hint}</div>}
+                </div>
+                <button
+                  onClick={() => setListening(a.id)}
+                  className={`min-w-[130px] rounded-lg border-2 px-3 py-2 text-xs font-black ${
+                    listening === a.id
+                      ? "animate-pulse border-primary bg-primary/25 text-primary"
+                      : "border-border bg-card text-foreground"
+                  }`}
+                >
+                  {listening === a.id ? "PRESS A KEY…" : save.keybinds[a.id].map(keyLabel).join(" / ")}
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => setSave((s) => ({ ...s, keybinds: defaultKeybinds() }))}
+            className="mt-3 w-full rounded-xl border-2 border-border bg-card py-2 text-sm font-bold"
+          >
+            RESET TO DEFAULTS (SPACE = attack, RETURN = pet)
+          </button>
+        </div>
+
+        <div className={panel}>
+          <div className="text-xs font-black tracking-widest text-sky-300">📱 IPAD & SOUND</div>
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-sm font-black text-foreground">
+              <span>Joystick size</span>
+              <span className="text-primary">{joy}px</span>
+            </div>
+            <input
+              type="range"
+              min={150}
+              max={300}
+              step={10}
+              value={joy}
+              onChange={(e) => setSave((s) => ({ ...s, joystickSize: Number(e.target.value) }))}
+              className="mt-2 w-full accent-orange-500"
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              The whole bottom-left corner is a touch zone — the joystick appears wherever your thumb lands.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <div
+                className="rounded-full border-4 border-primary/40 bg-black/40"
+                style={{ width: joy * 0.7, height: joy * 0.7 }}
+              />
+            </div>
+          </div>
+          <button
+            onClick={() => setSave((s) => ({ ...s, sound: !s.sound }))}
+            className="mt-5 w-full rounded-xl border-2 border-border bg-card py-3 font-bold"
+          >
+            SOUND: {save.sound ? "ON" : "OFF"}
+          </button>
+        </div>
+      </div>
+    </Shell>
+  );
+}
