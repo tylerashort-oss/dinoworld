@@ -62,9 +62,6 @@ export function Joystick({
       }}
       onPointerUp={end}
       onPointerCancel={end}
-      onPointerLeave={(e) => {
-        if (pointerId.current === e.pointerId) end();
-      }}
       className="relative touch-none select-none"
       style={{ width: zone, height: zone }}
       aria-label="Movement joystick"
