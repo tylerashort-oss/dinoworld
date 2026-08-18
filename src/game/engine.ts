@@ -396,9 +396,19 @@ export class GameEngine {
     return this.areaIndex;
   }
 
+  /** Current visual/elemental theme of the area. */
+  private get theme(): Theme {
+    return (this.area?.theme as Theme | undefined) ?? "fire";
+  }
+
   /** True when the current area uses the frozen theme. */
   private get isIce() {
-    return this.area?.theme === "ice";
+    return this.theme === "ice";
+  }
+
+  /** Pick a value per theme: fire / ice / poison. */
+  private tc<T>(fire: T, ice: T, poison: T): T {
+    return this.theme === "ice" ? ice : this.theme === "poison" ? poison : fire;
   }
 
   start() {
@@ -516,7 +526,7 @@ export class GameEngine {
       dmg: Math.max(4, Math.round(wDamage * 0.6)),
       life: 1.4,
       fromPlayer: true,
-      ice: this.isIce,
+      theme: this.theme,
     });
   }
 
@@ -561,7 +571,7 @@ export class GameEngine {
         vy: (Math.random() - 0.5) * 40,
         life: 0.4,
         maxLife: 0.4,
-        color: this.isIce ? "#8fe4ff" : "#ff8a2b",
+        color: this.tc("#ff8a2b", "#8fe4ff", "#8bf05a"),
         size: 8,
       });
     }
@@ -604,7 +614,11 @@ export class GameEngine {
         vy: (Math.random() - 0.5) * 220,
         life: 0.35,
         maxLife: 0.35,
-        color: this.isIce ? (i % 2 ? "#d8f4ff" : "#57bdf5") : i % 2 ? "#ffd166" : "#ff5b2e",
+        color: this.tc(
+          i % 2 ? "#ffd166" : "#ff5b2e",
+          i % 2 ? "#d8f4ff" : "#57bdf5",
+          i % 2 ? "#dcff9a" : "#4fbe3c",
+        ),
         size: 5 + Math.random() * 4,
       });
     }
@@ -621,17 +635,11 @@ export class GameEngine {
         vy: (Math.random() - 0.5) * 320,
         life: 0.7,
         maxLife: 0.7,
-        color: this.isIce
-          ? i % 3 === 0
-            ? "#ffffff"
-            : i % 3 === 1
-              ? "#7fd7ff"
-              : "#2f8ed6"
-          : i % 3 === 0
-            ? "#ffffff"
-            : i % 3 === 1
-              ? "#ff9e2c"
-              : "#ff3d2e",
+        color: this.tc(
+          i % 3 === 0 ? "#ffffff" : i % 3 === 1 ? "#ff9e2c" : "#ff3d2e",
+          i % 3 === 0 ? "#ffffff" : i % 3 === 1 ? "#7fd7ff" : "#2f8ed6",
+          i % 3 === 0 ? "#f4ffdf" : i % 3 === 1 ? "#a6f05a" : "#2f8f3a",
+        ),
         size: 6 + Math.random() * 6,
       });
     }
@@ -854,7 +862,7 @@ export class GameEngine {
           vy: -30 - Math.random() * 30,
           life: 0.35,
           maxLife: 0.35,
-          color: this.isIce ? "rgba(225,245,255,.65)" : "rgba(255,200,150,.55)",
+          color: this.tc("rgba(255,200,150,.55)", "rgba(225,245,255,.65)", "rgba(190,235,140,.55)"),
           size: 5 + Math.random() * 4,
         });
       }
@@ -887,7 +895,7 @@ export class GameEngine {
           vy: -60,
           life: 0.4,
           maxLife: 0.4,
-          color: this.isIce ? "#9fdcff" : "#ff7b28",
+          color: this.tc("#ff7b28", "#9fdcff", "#8ee23f"),
           size: 7,
         });
     }
@@ -919,7 +927,7 @@ export class GameEngine {
             vy: -18 - Math.random() * 20,
             life: 0.28,
             maxLife: 0.28,
-            color: this.isIce ? "rgba(220,240,255,.6)" : "rgba(255,200,150,.5)",
+            color: this.tc("rgba(255,200,150,.5)", "rgba(220,240,255,.6)", "rgba(190,235,140,.5)"),
             size: 4 + Math.random() * 3,
           });
         }
@@ -984,7 +992,11 @@ export class GameEngine {
           e.x += Math.cos(ang) * spd * dt;
           e.y += Math.sin(ang) * spd * dt;
         }
-        if (e.type === "mini_fire_raptor" || e.type === "mini_frost_raptor") {
+        if (
+          e.type === "mini_fire_raptor" ||
+          e.type === "mini_frost_raptor" ||
+          e.type === "mini_toxic_raptor"
+        ) {
           e.shootTimer -= dt;
           if (e.shootTimer <= 0) {
             e.shootTimer = 3.6;
@@ -1012,7 +1024,7 @@ export class GameEngine {
               vy: -20 - Math.random() * 25,
               life: 0.32,
               maxLife: 0.32,
-              color: this.isIce ? "rgba(220,240,255,.65)" : "rgba(255,200,150,.5)",
+              color: this.tc("rgba(255,200,150,.5)", "rgba(220,240,255,.65)", "rgba(190,235,140,.5)"),
               size: 4 + Math.random() * 4,
             });
           }
@@ -1039,7 +1051,7 @@ export class GameEngine {
           vy: 0,
           life: 0.25,
           maxLife: 0.25,
-          color: p.ice ? "#9fe6ff" : "#ff9d2e",
+          color: p.theme === "ice" ? "#9fe6ff" : p.theme === "poison" ? "#a4ee54" : "#ff9d2e",
           size: p.r * 1.2,
         });
       if (!p.fromPlayer && this.pz < 34 && dist(p.x, p.y, this.px, this.py) < p.r + 20) {
@@ -1161,7 +1173,7 @@ export class GameEngine {
       dmg: Math.round(dmg * (1 + (this.difficulty - 1) * 0.35)),
       life: 4,
       fromPlayer: false,
-      ice: this.isIce,
+      theme: this.theme,
     });
   }
 

@@ -15,7 +15,12 @@ export type EnemyType =
   | "snowling"
   | "mini_frost_raptor"
   | "frozen_utahraptor"
-  | "glacierus";
+  | "glacierus"
+  | "vine_pterodactyl"
+  | "sporeling"
+  | "mini_toxic_raptor"
+  | "toxic_utahraptor"
+  | "venomus";
 
 export interface SpawnDef {
   type: EnemyType;
@@ -40,7 +45,7 @@ export interface AreaDef {
   eruptions: number; // seconds between eruptions, 0 = none
   cave_dark?: boolean;
   /** Visual theme for ground, hazard pools and rocks. */
-  theme?: "fire" | "ice";
+  theme?: "fire" | "ice" | "poison";
   /** Clearing this area stores a respawn checkpoint. */
   checkpoint?: boolean;
 }
