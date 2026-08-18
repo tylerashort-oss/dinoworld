@@ -1367,6 +1367,8 @@ export class GameEngine {
 
   private drawLava(ctx: CanvasRenderingContext2D) {
     const ice = this.isIce;
+    const poison = this.theme === "poison";
+    const p3 = <T,>(fire: T, iceV: T, poisonV: T) => (poison ? poisonV : ice ? iceV : fire);
     for (const r of this.area.lava) {
       const t = this.time;
       ctx.save();
@@ -1376,7 +1378,11 @@ export class GameEngine {
 
       // molten base
       const lg = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
-      if (ice) {
+      if (poison) {
+        lg.addColorStop(0, "#1f5a1c");
+        lg.addColorStop(0.5, "#4f9c26");
+        lg.addColorStop(1, "#123f13");
+      } else if (ice) {
         lg.addColorStop(0, "#1d5c8f");
         lg.addColorStop(0.5, "#2c86c4");
         lg.addColorStop(1, "#123f66");
@@ -1400,7 +1406,11 @@ export class GameEngine {
           const rad = (Math.min(r.w / cols, r.h / rows) * 0.72) * (0.75 + seed * 0.4);
           const heat = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * 1.4 + seed * 12));
           const g = ctx.createRadialGradient(px + drift, py, 2, px + drift, py, rad);
-          if (ice) {
+          if (poison) {
+            g.addColorStop(0, `rgba(210,255,150,${0.6 * heat})`);
+            g.addColorStop(0.45, `rgba(120,220,60,${0.5 * heat})`);
+            g.addColorStop(1, "rgba(20,80,20,0)");
+          } else if (ice) {
             g.addColorStop(0, `rgba(190,240,255,${0.55 * heat})`);
             g.addColorStop(1, "rgba(20,70,120,0)");
           } else {
@@ -1416,7 +1426,7 @@ export class GameEngine {
       }
 
       // dark floating crust plates
-      ctx.globalAlpha = ice ? 0.45 : 0.55;
+      ctx.globalAlpha = p3(0.55, 0.45, 0.5);
       for (let i = 0; i < Math.max(3, Math.round((r.w * r.h) / 26000)); i++) {
         const s1 = GameEngine.hash(r.x + i * 7, r.y + i * 3);
         const s2 = GameEngine.hash(r.y + i * 11, r.x + i * 5);
@@ -1424,7 +1434,7 @@ export class GameEngine {
         const cyp = r.y + s2 * r.h + Math.cos(t * 0.3 + i * 1.7) * 7;
         const w = 22 + s1 * 40;
         const h = 14 + s2 * 26;
-        ctx.fillStyle = ice ? "#cfe9f8" : "#2a1710";
+        ctx.fillStyle = p3("#2a1710", "#cfe9f8", "#1c3a17");
         ctx.beginPath();
         ctx.ellipse(cxp, cyp, w, h, s1 * 3, 0, Math.PI * 2);
         ctx.fill();
@@ -1444,11 +1454,19 @@ export class GameEngine {
         const br = (5 + s1 * 9) * swell;
         if (br <= 0.4) continue;
         ctx.beginPath();
-        ctx.fillStyle = ice ? `rgba(225,248,255,${0.5 * swell})` : `rgba(255,226,140,${0.75 * swell})`;
+        ctx.fillStyle = p3(
+          `rgba(255,226,140,${0.75 * swell})`,
+          `rgba(225,248,255,${0.5 * swell})`,
+          `rgba(214,255,150,${0.7 * swell})`,
+        );
         ctx.arc(bx, by, br, 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.strokeStyle = ice ? `rgba(255,255,255,${0.5 * swell})` : `rgba(255,120,20,${0.6 * swell})`;
+        ctx.strokeStyle = p3(
+          `rgba(255,120,20,${0.6 * swell})`,
+          `rgba(255,255,255,${0.5 * swell})`,
+          `rgba(140,240,70,${0.6 * swell})`,
+        );
         ctx.lineWidth = 2;
         ctx.arc(bx, by, br * 1.25, 0, Math.PI * 2);
         ctx.stroke();
@@ -1456,7 +1474,7 @@ export class GameEngine {
 
       // steam wisps drifting off the surface
       ctx.globalAlpha = 0.14;
-      ctx.fillStyle = ice ? "#dff3ff" : "#ffb987";
+      ctx.fillStyle = p3("#ffb987", "#dff3ff", "#cdf7a3");
       for (let i = 0; i < 5; i++) {
         const s1 = GameEngine.hash(r.x + i * 41, r.y + i * 53);
         const sx = r.x + s1 * r.w + Math.sin(t * 0.8 + i * 2) * 18;
@@ -1470,15 +1488,15 @@ export class GameEngine {
 
       // glowing rim + cooled rock edge
       ctx.save();
-      ctx.shadowColor = ice ? "rgba(120,200,255,0.85)" : "rgba(255,90,10,0.9)";
+      ctx.shadowColor = p3("rgba(255,90,10,0.9)", "rgba(120,200,255,0.85)", "rgba(120,240,60,0.85)");
       ctx.shadowBlur = 26 + 14 * (0.5 + 0.5 * Math.sin(t * 2 + r.x * 0.01));
-      ctx.strokeStyle = ice ? "rgba(180,230,255,.55)" : "rgba(255,150,40,.55)";
+      ctx.strokeStyle = p3("rgba(255,150,40,.55)", "rgba(180,230,255,.55)", "rgba(160,245,90,.55)");
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.roundRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4, 24);
       ctx.stroke();
       ctx.restore();
-      ctx.strokeStyle = ice ? "rgba(210,235,250,.85)" : "rgba(38,22,16,.92)";
+      ctx.strokeStyle = p3("rgba(38,22,16,.92)", "rgba(210,235,250,.85)", "rgba(20,44,20,.92)");
       ctx.lineWidth = 7;
       ctx.beginPath();
       ctx.roundRect(r.x, r.y, r.w, r.h, 26);
@@ -1517,11 +1535,12 @@ export class GameEngine {
   }
 
   private drawRocks(ctx: CanvasRenderingContext2D) {
-    const ice = this.isIce;
-    // Basalt grey-blue boulders (ice world: pale glacier stone)
-    const pal = ice
-      ? { top: "#c6d9e6", mid: "#8fa9bd", low: "#5c748a", dark: "#3a4d5f", speck: "rgba(255,255,255,.5)" }
-      : { top: "#8b93a1", mid: "#5f6774", low: "#3c424d", dark: "#22262e", speck: "rgba(210,220,235,.35)" };
+    // Basalt boulders; glacier stone in ice, mossy stone in the jungle
+    const pal = this.tc(
+      { top: "#8b93a1", mid: "#5f6774", low: "#3c424d", dark: "#22262e", speck: "rgba(210,220,235,.35)" },
+      { top: "#c6d9e6", mid: "#8fa9bd", low: "#5c748a", dark: "#3a4d5f", speck: "rgba(255,255,255,.5)" },
+      { top: "#8fa473", mid: "#5d7247", low: "#3a4a2c", dark: "#1f2a18", speck: "rgba(190,240,150,.45)" },
+    );
     for (const r of this.area.rocks) {
       const cx = r.x + r.w / 2;
       const cy = r.y + r.h / 2;
@@ -1596,7 +1615,7 @@ export class GameEngine {
       ctx.restore();
 
       // rim light from the world's light source
-      ctx.strokeStyle = ice ? "rgba(190,235,255,.5)" : "rgba(255,140,60,.35)";
+      ctx.strokeStyle = this.tc("rgba(255,140,60,.35)", "rgba(190,235,255,.5)", "rgba(150,240,90,.45)");
       ctx.lineWidth = 2.5;
       ctx.stroke(path);
       ctx.restore();
@@ -1833,7 +1852,11 @@ export class GameEngine {
     for (const p of this.projectiles) {
       ctx.save();
       const g = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, p.r * 2.2);
-      if (p.ice) {
+      if (p.theme === "poison") {
+        g.addColorStop(0, "#f2ffd8");
+        g.addColorStop(0.4, "#7ee23c");
+        g.addColorStop(1, "rgba(30,140,40,0)");
+      } else if (p.theme === "ice") {
         g.addColorStop(0, "#f2fdff");
         g.addColorStop(0.4, "#63cbff");
         g.addColorStop(1, "rgba(20,120,220,0)");
@@ -1846,7 +1869,7 @@ export class GameEngine {
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r * 2.2, 0, Math.PI * 2);
       ctx.fill();
-      if (p.ice) {
+      if (p.theme === "ice") {
         // frost shard
         ctx.translate(p.x, p.y);
         ctx.rotate(Math.atan2(p.vy, p.vx));
@@ -1856,6 +1879,21 @@ export class GameEngine {
         ctx.lineTo(-p.r * 0.6, p.r * 0.55);
         ctx.lineTo(-p.r * 0.2, 0);
         ctx.lineTo(-p.r * 0.6, -p.r * 0.55);
+        ctx.closePath();
+        ctx.fill();
+      } else if (p.theme === "poison") {
+        // thorny vine dart
+        ctx.translate(p.x, p.y);
+        ctx.rotate(Math.atan2(p.vy, p.vx));
+        ctx.fillStyle = "#d8ffa8";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.r * 1.25, p.r * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#3f8f2a";
+        ctx.beginPath();
+        ctx.moveTo(p.r * 1.5, 0);
+        ctx.lineTo(0, p.r * 0.5);
+        ctx.lineTo(0, -p.r * 0.5);
         ctx.closePath();
         ctx.fill();
       }
