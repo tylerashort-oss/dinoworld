@@ -1420,11 +1420,17 @@ export class GameEngine {
       p.life -= dt;
     }
     compact(this.particles, (p) => p.life > 0);
+    if (this.particles.length > MAX_PARTICLES)
+      this.particles.splice(0, this.particles.length - MAX_PARTICLES);
     for (const n of this.numbers) {
       n.y -= 45 * dt;
       n.life -= dt;
     }
     compact(this.numbers, (n) => n.life > 0);
+    if (this.numbers.length > MAX_NUMBERS)
+      this.numbers.splice(0, this.numbers.length - MAX_NUMBERS);
+    if (this.projectiles.length > MAX_PROJECTILES)
+      this.projectiles.splice(0, this.projectiles.length - MAX_PROJECTILES);
   }
 
   private shoot(x: number, y: number, ang: number, speed: number, dmg: number) {
