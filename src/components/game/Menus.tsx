@@ -167,7 +167,8 @@ export function WorldMap({
             w.id === 1 ||
             (w.id === 2 && save.world2Unlocked) ||
             (w.id === 3 && save.world3Unlocked);
-          const at = currentWorld === w.id ? save.areaIndex : (save.progress?.[key] ?? 0);
+          // "at" is the frontier level, never the level currently being replayed.
+          const at = save.progress?.[key] ?? 0;
           const complete =
             w.id === 1
               ? save.world1Complete

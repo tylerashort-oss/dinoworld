@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { GameEngine, type GameEvent, type HudState } from "@/game/engine";
 import { getAreas, getWorld } from "@/game/worlds";
 import { CARDS, getCard, getWeapon, type CardDef } from "@/game/content";
@@ -72,8 +72,13 @@ export function GameScreen({
         break;
       case "caveFound": {
         const card = getCard(ev.cardId);
+        const areaId = ev.areaId;
         if (card) {
-          update((s) => ({ ...s, cards: Array.from(new Set([...s.cards, card.id])) }));
+          update((s) => ({
+            ...s,
+            cards: Array.from(new Set([...s.cards, card.id])),
+            foundCaves: { ...(s.foundCaves ?? {}), [areaId]: true },
+          }));
           setReward({
             title: "HIDDEN CAVE DISCOVERED!",
             subtitle: "A rare card was hiding in here.",
@@ -109,13 +114,12 @@ export function GameScreen({
           cards: Array.from(new Set([...s.cards, ...ids])),
           weapons: Array.from(new Set([...s.weapons, newWeapon])),
           equippedWeapon: upgradeFrom.includes(s.equippedWeapon) ? newWeapon : s.equippedWeapon,
-          bones: s.bones + bonus,
           flags: {
             ...s.flags,
             [jungle ? "jungleChestOpened" : ice ? "iceChestOpened" : "chestOpened"]: true,
           },
         }));
-        eng.setBones(s0.bones + bonus);
+        eng.addBonusBones(bonus);
         if (upgradeFrom.includes(s0.equippedWeapon)) eng.setWeapon(newWeapon);
         playSfx("card");
         setReward({
@@ -159,10 +163,9 @@ export function GameScreen({
             pets: Array.from(new Set([...s.pets, petId])),
             equippedPet: petId,
             cards: Array.from(new Set([...s.cards, pet.card])),
-            bones: s.bones + pet.bones,
           }));
           eng.setPet(petId);
-          eng.setBones(s0.bones + pet.bones);
+          eng.addBonusBones(pet.bones);
           const card = getCard(pet.card);
           setReward({
             title: `${pet.label} DEFEATED!`,
@@ -172,17 +175,19 @@ export function GameScreen({
           });
         } else if (ev.id === "firesauras") {
           const ids = ["card_firesauras", "card_fire_claw"];
+          const lastIdx = getAreas(1).length - 1;
           update((s) => ({
             ...s,
             cards: Array.from(new Set([...s.cards, ...ids])),
             weapons: Array.from(new Set([...s.weapons, "fire_claw"])),
             equippedWeapon: "fire_claw",
-            bones: s.bones + 300,
+            progress: { ...s.progress, "1": Math.max(s.progress?.["1"] ?? 0, lastIdx) },
+            checkpoints: { ...s.checkpoints, "1": Math.max(s.checkpoints?.["1"] ?? 0, lastIdx) },
             world1Complete: true,
             world2Unlocked: true,
           }));
           eng.setWeapon("fire_claw");
-          eng.setBones(s0.bones + 300);
+          eng.addBonusBones(300);
           setReward({
             title: "FIRESAURAS DEFEATED!",
             subtitle: "MYTHIC card + LEGENDARY FIRE CLAW + 300 bones!",
@@ -192,17 +197,19 @@ export function GameScreen({
           });
         } else if (ev.id === "glacierus") {
           const ids = ["card_glacierus", "card_ice_claw"];
+          const lastIdx = getAreas(2).length - 1;
           update((s) => ({
             ...s,
             cards: Array.from(new Set([...s.cards, ...ids])),
             weapons: Array.from(new Set([...s.weapons, "ice_claw"])),
             equippedWeapon: "ice_claw",
-            bones: s.bones + 450,
+            progress: { ...s.progress, "2": Math.max(s.progress?.["2"] ?? 0, lastIdx) },
+            checkpoints: { ...s.checkpoints, "2": Math.max(s.checkpoints?.["2"] ?? 0, lastIdx) },
             world2Complete: true,
             world3Unlocked: true,
           }));
           eng.setWeapon("ice_claw");
-          eng.setBones(s0.bones + 450);
+          eng.addBonusBones(450);
           setReward({
             title: "GLACIERUS DEFEATED!",
             subtitle: "MYTHIC card + LEGENDARY ICE CLAW + 450 bones!",
@@ -212,17 +219,19 @@ export function GameScreen({
           });
         } else if (ev.id === "venomus") {
           const ids = ["card_venomus", "card_vine_claw"];
+          const lastIdx = getAreas(3).length - 1;
           update((s) => ({
             ...s,
             cards: Array.from(new Set([...s.cards, ...ids])),
             pets: Array.from(new Set([...s.pets, "venomus"])),
             weapons: Array.from(new Set([...s.weapons, "vine_claw"])),
             equippedWeapon: "vine_claw",
-            bones: s.bones + 600,
+            progress: { ...s.progress, "3": Math.max(s.progress?.["3"] ?? 0, lastIdx) },
+            checkpoints: { ...s.checkpoints, "3": Math.max(s.checkpoints?.["3"] ?? 0, lastIdx) },
             world3Complete: true,
           }));
           eng.setWeapon("vine_claw");
-          eng.setBones(s0.bones + 600);
+          eng.addBonusBones(600);
           setReward({
             title: "VENOMUS DEFEATED!",
             subtitle: "MYTHIC card + LEGENDARY VINE CLAW + 600 bones!",
@@ -285,7 +294,7 @@ export function GameScreen({
               ? "iceChestOpened"
               : "chestOpened"
         ],
-      foundCaves: {},
+      foundCaves: s.foundCaves ?? {},
       keybinds: s.keybinds,
       difficulty: s.world ?? 1,
       bonusMaxHp: (up["maxHp"] ?? 0) * 25,
@@ -294,11 +303,13 @@ export function GameScreen({
       petHits: pink ? 2 : 1,
       magnet: pink ? 110 : 46,
       shield: pink ? 1 : 0,
+      dash: pink,
       onHud: setHud,
       onEvent: (e) => handleEvent.current(e),
     });
     engineRef.current = engine;
-    (window as unknown as { __dinoEngine?: GameEngine }).__dinoEngine = engine;
+    if (import.meta.env.DEV)
+      (window as unknown as { __dinoEngine?: GameEngine }).__dinoEngine = engine;
     engine.start();
     return () => {
       engine.destroy();
@@ -336,6 +347,10 @@ export function GameScreen({
 
   const weapon = getWeapon(save.equippedWeapon);
   const checkpointArea = areas[save.checkpoints?.[worldKey] ?? 0];
+
+  const onStick = useCallback((v: { x: number; y: number }) => {
+    engineRef.current?.setInput(v);
+  }, []);
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-black select-none">
@@ -390,14 +405,19 @@ export function GameScreen({
 
       {/* ---------- CONTROLS ---------- */}
       <div className="absolute bottom-2 left-2">
-        <Joystick
-          size={save.joystickSize ?? 210}
-          onChange={(v) => engineRef.current?.setInput(v)}
-        />
+        <Joystick size={save.joystickSize ?? 210} onChange={onStick} />
       </div>
 
       <div className="absolute bottom-4 right-4 flex items-end gap-3">
         <div className="flex flex-col gap-3">
+          {hud?.hasDash && (
+            <ActionButton
+              label="💨 DASH"
+              ready={hud?.dashReady ?? 1}
+              className="h-[76px] w-[76px] border-pink-400/70 bg-pink-500/25 text-xs"
+              onPress={() => engineRef.current?.dash()}
+            />
+          )}
           <ActionButton
             label="⬆ JUMP"
             className="h-[76px] w-[76px] border-sky-400/70 bg-sky-500/25 text-sm"
@@ -588,7 +608,7 @@ function Overlay({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ActionButton({
+const ActionButton = memo(function ActionButton({
   label,
   onPress,
   onRelease,
@@ -625,6 +645,6 @@ function ActionButton({
       />
     </button>
   );
-}
+});
 
 export { CARDS };

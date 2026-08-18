@@ -102,8 +102,9 @@ function Index() {
               ...s,
               started: true,
               world: worldId,
-              areaIndex:
-                areaIndex ?? (s.world === worldId ? s.areaIndex : (s.progress?.[String(worldId)] ?? 0)),
+              // No explicit level picked → always resume at the furthest level reached,
+              // never at whatever level was last replayed.
+              areaIndex: areaIndex ?? (s.progress?.[String(worldId)] ?? 0),
             }));
             setScreen("play");
           }}

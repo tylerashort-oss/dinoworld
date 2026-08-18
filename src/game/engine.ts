@@ -20,13 +20,15 @@ export interface HudState {
   attackReady: number;
   petName: string | null;
   weaponName: string;
+  hasDash: boolean;
+  dashReady: number;
 }
 
 export type GameEvent =
   | { type: "death" }
   | { type: "bossDefeated"; id: EnemyType }
   | { type: "chestOpened" }
-  | { type: "caveFound"; cardId: string }
+  | { type: "caveFound"; cardId: string; areaId: string }
   | { type: "areaExit"; areaIndex: number }
   | { type: "bonesChanged"; bones: number }
   | { type: "pauseRequested" }
@@ -53,6 +55,8 @@ interface EngineOpts {
   petHits?: number;
   magnet?: number;
   shield?: number;
+  /** Pink Explorer's dash. */
+  dash?: boolean;
   onHud: (h: HudState) => void;
   onEvent: (e: GameEvent) => void;
 }
@@ -60,6 +64,41 @@ interface EngineOpts {
 interface Vec {
   x: number;
   y: number;
+}
+
+/** Shared, decoded-once image cache so re-entering a level never re-decodes sprites. */
+const IMAGE_CACHE: Record<string, HTMLImageElement> = {};
+
+function loadImage(src: string): HTMLImageElement {
+  const cached = IMAGE_CACHE[src];
+  if (cached) return cached;
+  const img = new Image();
+  img.onerror = () => {
+    console.warn("[dinoquest] sprite failed to load:", src);
+  };
+  img.src = src;
+  IMAGE_CACHE[src] = img;
+  return img;
+}
+
+/** Drop expired items in place instead of allocating a new array every frame. */
+function compact<T>(arr: T[], keep: (v: T) => boolean) {
+  let n = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i] as T;
+    if (keep(v)) arr[n++] = v;
+  }
+  arr.length = n;
+}
+
+/** Hard ceilings so a burst of cosmetics can never tank the frame rate on an iPad. */
+const MAX_PARTICLES = 260;
+const MAX_NUMBERS = 40;
+const MAX_PROJECTILES = 90;
+
+function pushCapped<T>(arr: T[], item: T, max: number) {
+  if (arr.length >= max) arr.shift();
+  arr.push(item);
 }
 
 interface Enemy {
@@ -374,6 +413,12 @@ export class GameEngine {
   private magnet = 46;
   private shieldMax = 0;
   private shield = 0;
+  private dashEnabled = false;
+  private dashCd = 0;
+  private dashTime = 0;
+  private dashX = 1;
+  private dashY = 0;
+  private dashCooldown = 2.2;
 
   private weaponId: string;
   private petId: string | null;
@@ -430,6 +475,7 @@ export class GameEngine {
     this.petHits = opts.petHits ?? 1;
     this.magnet = opts.magnet ?? 46;
     this.shieldMax = opts.shield ?? 0;
+    this.dashEnabled = !!opts.dash;
     this.maxHp = 100 + (opts.bonusMaxHp ?? 0);
     this.hp = this.maxHp;
     this.preload(opts.characterId);
@@ -440,14 +486,10 @@ export class GameEngine {
 
   private preload(characterId: string) {
     (Object.keys(SPRITES) as (keyof typeof SPRITES)[]).forEach((k) => {
-      const img = new Image();
-      img.src = SPRITES[k];
-      this.images[k] = img;
+      this.images[k] = loadImage(SPRITES[k]);
     });
     Object.entries(RUN_SHEETS).forEach(([k, sheet]) => {
-      const img = new Image();
-      img.src = sheet.src;
-      this.images[`${k}__run`] = img;
+      this.images[`${k}__run`] = loadImage(sheet.src);
     });
     this.setRunSheet(characterId);
     this.images["player"] = this.images[characterId] ?? this.images["rocket_boy"];
@@ -517,6 +559,8 @@ export class GameEngine {
     this.invuln = 1;
     this.attackCd = 0;
     this.petCd = 0;
+    this.dashCd = 0;
+    this.dashTime = 0;
     this.enemies = [];
     this.projectiles = [];
     this.particles = [];
@@ -527,7 +571,7 @@ export class GameEngine {
     this.exitOpen = area.waves.length === 0 && !area.chest;
     this.chestOpen = false;
     this.caveFound = !!this.opts.foundCaves[area.id];
-    if (area.chest && this.opts.openedChest && area.id === "treasure_room") {
+    if (area.chest && this.opts.openedChest) {
       this.chestOpen = true;
       this.exitOpen = true;
     }
@@ -601,6 +645,7 @@ export class GameEngine {
       if (a === "attack") this.setAttackHeld(true);
       if (a === "pet") this.petAttack();
       if (a === "jump") this.jump();
+      if (a === "dash") this.dash();
       if (a === "pause") this.opts.onEvent({ type: "pauseRequested" });
     }
   };
@@ -694,6 +739,38 @@ export class GameEngine {
     if (this.pz > 0) return;
     this.pvz = 420;
     playSfx("jump");
+  }
+
+  /** Pink Explorer's escape move: a short burst of speed with i-frames. */
+  dash() {
+    if (!this.dashEnabled || this.dead || this.paused) return;
+    if (this.dashCd > 0 || this.dashTime > 0) return;
+    const mag = Math.hypot(this.aimX, this.aimY);
+    this.dashX = mag > 0.05 ? this.aimX / mag : this.facing;
+    this.dashY = mag > 0.05 ? this.aimY / mag : 0;
+    this.dashTime = 0.18;
+    this.dashCd = this.dashCooldown;
+    this.invuln = Math.max(this.invuln, 0.34);
+    playSfx("jump");
+    for (let i = 0; i < 8; i++)
+      pushCapped(
+        this.particles,
+        {
+          x: this.px - this.dashX * 14,
+          y: this.py + 10 - this.dashY * 14,
+          vx: -this.dashX * (80 + Math.random() * 90),
+          vy: -this.dashY * (80 + Math.random() * 90) - 20,
+          life: 0.3,
+          maxLife: 0.3,
+          color: "rgba(255,170,220,.75)",
+          size: 6 + Math.random() * 5,
+        },
+        MAX_PARTICLES,
+      );
+  }
+
+  canDash() {
+    return this.dashEnabled;
   }
 
   petAttack() {
@@ -845,6 +922,11 @@ export class GameEngine {
     this.opts.onEvent({ type: "bonesChanged", bones: this.bones });
   }
 
+  /** Award reward bones through the engine so it stays the single source of truth. */
+  addBonusBones(n: number) {
+    this.addBones(n);
+  }
+
   getDebug() {
     return {
       x: Math.round(this.px),
@@ -917,6 +999,8 @@ export class GameEngine {
       attackReady: clamp(1 - this.attackCd / w.cooldown, 0, 1),
       petName: getPet(this.petId)?.name ?? null,
       weaponName: w.name,
+      hasDash: this.dashEnabled,
+      dashReady: this.dashEnabled ? clamp(1 - this.dashCd / this.dashCooldown, 0, 1) : 0,
     });
   }
 
@@ -1000,7 +1084,13 @@ export class GameEngine {
 
     // ---- player movement
     const inLava = this.pz < 26 && this.pointInLava(this.px, this.py);
-    const base = 250 * this.speedMul * (inLava ? 0.6 : 1);
+    this.dashCd = Math.max(0, this.dashCd - dt);
+    if (this.dashTime > 0) {
+      this.dashTime = Math.max(0, this.dashTime - dt);
+      ix = this.dashX;
+      iy = this.dashY;
+    }
+    const base = 250 * this.speedMul * (inLava ? 0.6 : 1) * (this.dashTime > 0 ? 3.2 : 1);
     const nx = this.px + ix * base * dt;
     const ny = this.py + iy * base * dt;
     const prevX = this.px;
@@ -1242,7 +1332,8 @@ export class GameEngine {
         }
       }
     }
-    this.projectiles = this.projectiles.filter(
+    compact(
+      this.projectiles,
       (p) => p.life > 0 && p.x > -50 && p.y > -50 && p.x < area.w + 50 && p.y < area.h + 50,
     );
 
@@ -1298,13 +1389,13 @@ export class GameEngine {
         if (er.burst <= 0) er.done = true;
       }
     }
-    this.eruptions = this.eruptions.filter((e) => !e.done);
+    compact(this.eruptions, (e) => !e.done);
 
     // ---- cave discovery
     if (area.cave && !this.caveFound && dist(this.px, this.py, area.cave.x, area.cave.y) < 70) {
       this.caveFound = true;
       playSfx("card");
-      this.opts.onEvent({ type: "caveFound", cardId: area.cave.cardId });
+      this.opts.onEvent({ type: "caveFound", cardId: area.cave.cardId, areaId: area.id });
     }
 
     // ---- chest by touch
@@ -1328,12 +1419,18 @@ export class GameEngine {
       p.vy += 260 * dt;
       p.life -= dt;
     }
-    this.particles = this.particles.filter((p) => p.life > 0);
+    compact(this.particles, (p) => p.life > 0);
+    if (this.particles.length > MAX_PARTICLES)
+      this.particles.splice(0, this.particles.length - MAX_PARTICLES);
     for (const n of this.numbers) {
       n.y -= 45 * dt;
       n.life -= dt;
     }
-    this.numbers = this.numbers.filter((n) => n.life > 0);
+    compact(this.numbers, (n) => n.life > 0);
+    if (this.numbers.length > MAX_NUMBERS)
+      this.numbers.splice(0, this.numbers.length - MAX_NUMBERS);
+    if (this.projectiles.length > MAX_PROJECTILES)
+      this.projectiles.splice(0, this.projectiles.length - MAX_PROJECTILES);
   }
 
   private shoot(x: number, y: number, ang: number, speed: number, dmg: number) {

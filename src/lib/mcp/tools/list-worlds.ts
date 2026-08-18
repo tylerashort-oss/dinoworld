@@ -1,4 +1,4 @@
-import { defineTool } from "@lovable.dev/mcp-js";
+import { defineTool, ToolError } from "@lovable.dev/mcp-js";
 
 export default defineTool({
   name: "list_worlds",
@@ -7,7 +7,12 @@ export default defineTool({
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async () => {
-    const { WORLDS } = await import("../../../game/worlds");
+    let WORLDS;
+    try {
+      ({ WORLDS } = await import("../../../game/worlds"));
+    } catch {
+      throw new ToolError("World data is unavailable.");
+    }
     const worlds = WORLDS.map((w) => ({
       id: w.id,
       name: w.name,

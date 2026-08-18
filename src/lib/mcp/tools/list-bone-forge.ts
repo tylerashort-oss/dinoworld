@@ -1,4 +1,4 @@
-import { defineTool } from "@lovable.dev/mcp-js";
+import { defineTool, ToolError } from "@lovable.dev/mcp-js";
 
 export default defineTool({
   name: "list_bone_forge",
@@ -8,9 +8,13 @@ export default defineTool({
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async () => {
-    const { UPGRADES, upgradeCost, EXTRA_LIFE_COST, CARD_PACK_COST } = await import(
-      "../../../game/content"
-    );
+    let mod;
+    try {
+      mod = await import("../../../game/content");
+    } catch {
+      throw new ToolError("Bone Forge data is unavailable.");
+    }
+    const { UPGRADES, upgradeCost, EXTRA_LIFE_COST, CARD_PACK_COST } = mod;
     const upgrades = UPGRADES.map((u) => ({
       ...u,
       costPerLevel: Array.from({ length: u.max }, (_, i) => upgradeCost(u, i)),

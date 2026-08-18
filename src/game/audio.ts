@@ -12,6 +12,9 @@ type SfxName =
 
 let ctx: AudioContext | null = null;
 let enabled = true;
+/** Rate limit repeated sfx so dense combat can't flood the audio graph. */
+const lastPlayed: Partial<Record<SfxName, number>> = {};
+const MIN_GAP: Partial<Record<SfxName, number>> = { hit: 55, hurt: 90, bone: 40, attack: 45 };
 
 export function setSoundEnabled(v: boolean) {
   enabled = v;
@@ -45,6 +48,12 @@ function tone(freq: number, dur: number, type: OscillatorType, vol = 0.16, slide
 
 export function playSfx(name: SfxName) {
   if (!enabled) return;
+  const gap = MIN_GAP[name];
+  if (gap !== undefined) {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (now - (lastPlayed[name] ?? -Infinity) < gap) return;
+    lastPlayed[name] = now;
+  }
   initAudio();
   switch (name) {
     case "attack":
