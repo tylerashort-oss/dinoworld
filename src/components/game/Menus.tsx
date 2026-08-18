@@ -1,5 +1,17 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, PETS, WEAPONS, getCharacter, getCard, type CardType } from "@/game/content";
+import {
+  CARDS,
+  CARD_PACK_COST,
+  CHARACTERS,
+  EXTRA_LIFE_COST,
+  PETS,
+  UPGRADES,
+  WEAPONS,
+  getCharacter,
+  getCard,
+  upgradeCost,
+  type CardType,
+} from "@/game/content";
 import { WORLDS } from "@/game/worlds";
 import { ACTIONS, keyLabel, rebind, defaultKeybinds, type ActionId } from "@/game/keybinds";
 import type { SaveData } from "@/game/save";
@@ -100,7 +112,7 @@ export function WorldMap({
 }: {
   save: SaveData;
   setSave: (fn: (s: SaveData) => SaveData) => void;
-  onPlay: (worldId: number) => void;
+  onPlay: (worldId: number, areaIndex?: number) => void;
   onCamp: () => void;
   onCollection: () => void;
   onSettings: () => void;
@@ -148,21 +160,30 @@ export function WorldMap({
               </div>
               <ol className="mt-3 space-y-1 text-xs">
                 {w.areas.map((a, i) => (
-                  <li
-                    key={a.id}
-                    className={
-                      unlocked && i === at
-                        ? "font-black text-primary"
-                        : unlocked && i < at
-                          ? "text-emerald-400"
-                          : "text-muted-foreground"
-                    }
-                  >
-                    {unlocked && i < at ? "✔" : unlocked && i === at ? "▶" : "•"} {a.name}
-                    {a.checkpoint ? " ⛳" : ""}
+                  <li key={a.id}>
+                    <button
+                      disabled={!unlocked || !(complete || i <= (save.progress?.[key] ?? 0))}
+                      onClick={() => onPlay(w.id, i)}
+                      className={`w-full rounded-lg px-2 py-1 text-left disabled:opacity-60 ${
+                        unlocked && i === at
+                          ? "bg-primary/20 font-black text-primary"
+                          : unlocked && i < at
+                            ? "text-emerald-400 hover:bg-white/5"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {unlocked && i < at ? "✔" : unlocked && i === at ? "▶" : "•"} {a.name}
+                      {a.checkpoint ? " ⛳" : ""}
+                      {(complete || i < at) && unlocked ? " · REPLAY" : ""}
+                    </button>
                   </li>
                 ))}
               </ol>
+              {complete && (
+                <p className="mt-2 text-[10px] font-bold text-emerald-300">
+                  World complete — tap any level above to replay it.
+                </p>
+              )}
               <button
                 disabled={!unlocked}
                 onClick={() => onPlay(w.id)}
