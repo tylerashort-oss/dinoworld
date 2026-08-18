@@ -1,5 +1,5 @@
 import { AREAS, type AreaDef, type EnemyType, type Rect } from "./areas";
-import { PETS, SPRITES, WEAPONS, getCharacter, getPet, getWeapon } from "./content";
+import { PETS, RUN_SHEETS, SPRITES, WEAPONS, getCharacter, getPet, getWeapon } from "./content";
 import { playSfx } from "./audio";
 
 export interface HudState {
@@ -175,6 +175,9 @@ export class GameEngine {
   private dead = false;
   private speedMul = 1;
   private lootBonus = 0;
+  private runPhase = 0;
+  private runSpeed = 0;
+  private runFrames = 1;
 
   private weaponId: string;
   private petId: string | null;
@@ -231,11 +234,24 @@ export class GameEngine {
       img.src = SPRITES[k];
       this.images[k] = img;
     });
+    Object.entries(RUN_SHEETS).forEach(([k, sheet]) => {
+      const img = new Image();
+      img.src = sheet.src;
+      this.images[`${k}__run`] = img;
+    });
+    this.setRunSheet(characterId);
     this.images["player"] = this.images[characterId] ?? this.images["rocket_boy"];
+  }
+
+  private setRunSheet(characterId: string) {
+    const sheet = RUN_SHEETS[characterId] ?? RUN_SHEETS["rocket_boy"];
+    this.images["playerRun"] = this.images[`${characterId}__run`] ?? this.images["rocket_boy__run"];
+    this.runFrames = sheet?.frames ?? 4;
   }
 
   setCharacterSprite(characterId: string) {
     this.images["player"] = this.images[characterId] ?? this.images["rocket_boy"];
+    this.setRunSheet(characterId);
     const ch = getCharacter(characterId);
     this.speedMul = ch.speed;
     this.lootBonus = ch.lootBonus;
