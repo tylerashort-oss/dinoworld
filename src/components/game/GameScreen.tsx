@@ -15,6 +15,99 @@ interface RewardOverlay {
   finalVictory?: boolean;
 }
 
+/** Per-world chest loot, chest flag and final-boss reward. */
+const WORLD_LOOT: Record<
+  number,
+  {
+    chestFlag: string;
+    chestCards: string[];
+    pinkBonus: string;
+    axe: string;
+    claw: string;
+    clawCard: string;
+    bossCard: string;
+    bossBones: number;
+    clawLabel: string;
+  }
+> = {
+  1: {
+    chestFlag: "chestOpened",
+    chestCards: ["card_fire_bone_axe", "card_baby_raptor", "card_mini_fire_raptor"],
+    pinkBonus: "card_fire_utahraptor",
+    axe: "fire_bone_axe",
+    claw: "fire_claw",
+    clawCard: "card_fire_claw",
+    bossCard: "card_firesauras",
+    bossBones: 300,
+    clawLabel: "FIRE CLAW",
+  },
+  2: {
+    chestFlag: "iceChestOpened",
+    chestCards: ["card_frost_bone_axe", "card_baby_frost_raptor", "card_mini_frost_raptor"],
+    pinkBonus: "card_frozen_utahraptor",
+    axe: "frost_bone_axe",
+    claw: "ice_claw",
+    clawCard: "card_ice_claw",
+    bossCard: "card_glacierus",
+    bossBones: 450,
+    clawLabel: "ICE CLAW",
+  },
+  3: {
+    chestFlag: "jungleChestOpened",
+    chestCards: ["card_venom_bone_axe", "card_baby_toxic_raptor", "card_mini_toxic_raptor"],
+    pinkBonus: "card_toxic_utahraptor",
+    axe: "venom_bone_axe",
+    claw: "vine_claw",
+    clawCard: "card_vine_claw",
+    bossCard: "card_venomus",
+    bossBones: 600,
+    clawLabel: "VINE CLAW",
+  },
+  4: {
+    chestFlag: "desertChestOpened",
+    chestCards: ["card_sand_bone_axe", "card_baby_sand_raptor", "card_mini_sand_raptor"],
+    pinkBonus: "card_sand_utahraptor",
+    axe: "sand_bone_axe",
+    claw: "sand_claw",
+    clawCard: "card_sand_claw",
+    bossCard: "card_dunecrusher",
+    bossBones: 750,
+    clawLabel: "SAND CLAW",
+  },
+  5: {
+    chestFlag: "electricChestOpened",
+    chestCards: ["card_storm_bone_axe", "card_baby_storm_raptor", "card_mini_storm_raptor"],
+    pinkBonus: "card_storm_utahraptor",
+    axe: "storm_bone_axe",
+    claw: "storm_claw",
+    clawCard: "card_storm_claw",
+    bossCard: "card_voltasaurus",
+    bossBones: 900,
+    clawLabel: "STORM CLAW",
+  },
+  6: {
+    chestFlag: "shadowChestOpened",
+    chestCards: ["card_shadow_bone_axe", "card_baby_shadow_raptor", "card_mini_shadow_raptor"],
+    pinkBonus: "card_shadow_utahraptor",
+    axe: "shadow_bone_axe",
+    claw: "shadow_claw",
+    clawCard: "card_shadow_claw",
+    bossCard: "card_eclipsaurus",
+    bossBones: 1200,
+    clawLabel: "SHADOW CLAW",
+  },
+};
+
+/** Weapons a world's chest axe should auto-upgrade over. */
+const WEAKER_WEAPONS = [
+  "bone_sword",
+  "fire_bone_axe",
+  "frost_bone_axe",
+  "venom_bone_axe",
+  "sand_bone_axe",
+  "storm_bone_axe",
+];
+
 export function GameScreen({
   save,
   setSave,
@@ -58,8 +151,7 @@ export function GameScreen({
     if (!eng) return;
     const s0 = saveRef.current;
     const world = s0.world ?? 1;
-    const ice = world === 2;
-    const jungle = world === 3;
+    const loot = WORLD_LOOT[world] ?? WORLD_LOOT[1]!;
     switch (ev.type) {
       case "bonesChanged":
         update((s) => ({ ...s, bones: ev.bones }));
@@ -88,27 +180,12 @@ export function GameScreen({
         break;
       }
       case "chestOpened": {
-        const ids = jungle
-          ? ["card_venom_bone_axe", "card_baby_toxic_raptor", "card_mini_toxic_raptor"]
-          : ice
-            ? ["card_frost_bone_axe", "card_baby_frost_raptor", "card_mini_frost_raptor"]
-            : ["card_fire_bone_axe", "card_baby_raptor", "card_mini_fire_raptor"];
-        if (s0.character === "pink_explorer")
-          ids.push(
-            jungle
-              ? "card_toxic_utahraptor"
-              : ice
-                ? "card_frozen_utahraptor"
-                : "card_fire_utahraptor",
-          );
+        const ids = [...loot.chestCards];
+        if (s0.character === "pink_explorer") ids.push(loot.pinkBonus);
         const cards = ids.map(getCard).filter(Boolean) as CardDef[];
-        const bonus = s0.character === "pink_explorer" ? 120 : 80;
-        const newWeapon = jungle ? "venom_bone_axe" : ice ? "frost_bone_axe" : "fire_bone_axe";
-        const upgradeFrom = jungle
-          ? ["bone_sword", "fire_bone_axe", "frost_bone_axe"]
-          : ice
-            ? ["bone_sword", "fire_bone_axe"]
-            : ["bone_sword"];
+        const bonus = (s0.character === "pink_explorer" ? 120 : 80) * Math.max(1, world - 1);
+        const newWeapon = loot.axe;
+        const upgradeFrom = WEAKER_WEAPONS.slice(0, WEAKER_WEAPONS.indexOf(newWeapon));
         update((s) => ({
           ...s,
           cards: Array.from(new Set([...s.cards, ...ids])),
@@ -116,7 +193,7 @@ export function GameScreen({
           equippedWeapon: upgradeFrom.includes(s.equippedWeapon) ? newWeapon : s.equippedWeapon,
           flags: {
             ...s.flags,
-            [jungle ? "jungleChestOpened" : ice ? "iceChestOpened" : "chestOpened"]: true,
+            [loot.chestFlag]: true,
           },
         }));
         eng.addBonusBones(bonus);
@@ -154,6 +231,36 @@ export function GameScreen({
             bones: 130,
             label: "TOXIC UTAHRAPTOR",
           },
+          mini_sand_raptor: {
+            card: "card_mini_sand_raptor",
+            bones: 160,
+            label: "MINI SAND RAPTOR",
+          },
+          sand_utahraptor: {
+            card: "card_sand_utahraptor",
+            bones: 210,
+            label: "SAND UTAHRAPTOR",
+          },
+          mini_storm_raptor: {
+            card: "card_mini_storm_raptor",
+            bones: 240,
+            label: "MINI STORM RAPTOR",
+          },
+          storm_utahraptor: {
+            card: "card_storm_utahraptor",
+            bones: 300,
+            label: "STORM UTAHRAPTOR",
+          },
+          mini_shadow_raptor: {
+            card: "card_mini_shadow_raptor",
+            bones: 330,
+            label: "MINI SHADOW RAPTOR",
+          },
+          shadow_utahraptor: {
+            card: "card_shadow_utahraptor",
+            bones: 400,
+            label: "SHADOW UTAHRAPTOR",
+          },
         };
         const pet = petBosses[ev.id];
         if (pet) {
@@ -173,70 +280,36 @@ export function GameScreen({
             cards: card ? [card] : [],
             bones: pet.bones,
           });
-        } else if (ev.id === "firesauras") {
-          const ids = ["card_firesauras", "card_fire_claw"];
-          const lastIdx = getAreas(1).length - 1;
+        } else if (ev.id === getWorld(world).finalBoss) {
+          const ids = [loot.bossCard, loot.clawCard];
+          const lastIdx = getAreas(world).length - 1;
+          const petId = ev.id;
           update((s) => ({
             ...s,
             cards: Array.from(new Set([...s.cards, ...ids])),
-            weapons: Array.from(new Set([...s.weapons, "fire_claw"])),
-            equippedWeapon: "fire_claw",
-            progress: { ...s.progress, "1": Math.max(s.progress?.["1"] ?? 0, lastIdx) },
-            checkpoints: { ...s.checkpoints, "1": Math.max(s.checkpoints?.["1"] ?? 0, lastIdx) },
-            world1Complete: true,
-            world2Unlocked: true,
+            pets: Array.from(new Set([...s.pets, petId])),
+            weapons: Array.from(new Set([...s.weapons, loot.claw])),
+            equippedWeapon: loot.claw,
+            progress: {
+              ...s.progress,
+              [String(world)]: Math.max(s.progress?.[String(world)] ?? 0, lastIdx),
+            },
+            checkpoints: {
+              ...s.checkpoints,
+              [String(world)]: Math.max(s.checkpoints?.[String(world)] ?? 0, lastIdx),
+            },
+            ...(getWorld(world).completeFlag ? { [getWorld(world).completeFlag]: true } : {}),
+            ...(getWorld(world + 1)?.id === world + 1 && getWorld(world + 1).unlockFlag
+              ? { [getWorld(world + 1).unlockFlag as string]: true }
+              : {}),
           }));
-          eng.setWeapon("fire_claw");
-          eng.addBonusBones(300);
+          eng.setWeapon(loot.claw);
+          eng.addBonusBones(loot.bossBones);
           setReward({
-            title: "FIRESAURAS DEFEATED!",
-            subtitle: "MYTHIC card + LEGENDARY FIRE CLAW + 300 bones!",
+            title: `${getWorld(world).finalBoss.toUpperCase()} DEFEATED!`,
+            subtitle: `MYTHIC card + LEGENDARY ${loot.clawLabel} + ${loot.bossBones} bones!`,
             cards: ids.map(getCard).filter(Boolean) as CardDef[],
-            bones: 300,
-            finalVictory: true,
-          });
-        } else if (ev.id === "glacierus") {
-          const ids = ["card_glacierus", "card_ice_claw"];
-          const lastIdx = getAreas(2).length - 1;
-          update((s) => ({
-            ...s,
-            cards: Array.from(new Set([...s.cards, ...ids])),
-            weapons: Array.from(new Set([...s.weapons, "ice_claw"])),
-            equippedWeapon: "ice_claw",
-            progress: { ...s.progress, "2": Math.max(s.progress?.["2"] ?? 0, lastIdx) },
-            checkpoints: { ...s.checkpoints, "2": Math.max(s.checkpoints?.["2"] ?? 0, lastIdx) },
-            world2Complete: true,
-            world3Unlocked: true,
-          }));
-          eng.setWeapon("ice_claw");
-          eng.addBonusBones(450);
-          setReward({
-            title: "GLACIERUS DEFEATED!",
-            subtitle: "MYTHIC card + LEGENDARY ICE CLAW + 450 bones!",
-            cards: ids.map(getCard).filter(Boolean) as CardDef[],
-            bones: 450,
-            finalVictory: true,
-          });
-        } else if (ev.id === "venomus") {
-          const ids = ["card_venomus", "card_vine_claw"];
-          const lastIdx = getAreas(3).length - 1;
-          update((s) => ({
-            ...s,
-            cards: Array.from(new Set([...s.cards, ...ids])),
-            pets: Array.from(new Set([...s.pets, "venomus"])),
-            weapons: Array.from(new Set([...s.weapons, "vine_claw"])),
-            equippedWeapon: "vine_claw",
-            progress: { ...s.progress, "3": Math.max(s.progress?.["3"] ?? 0, lastIdx) },
-            checkpoints: { ...s.checkpoints, "3": Math.max(s.checkpoints?.["3"] ?? 0, lastIdx) },
-            world3Complete: true,
-          }));
-          eng.setWeapon("vine_claw");
-          eng.addBonusBones(600);
-          setReward({
-            title: "VENOMUS DEFEATED!",
-            subtitle: "MYTHIC card + LEGENDARY VINE CLAW + 600 bones!",
-            cards: ids.map(getCard).filter(Boolean) as CardDef[],
-            bones: 600,
+            bones: loot.bossBones,
             finalVictory: true,
           });
         }

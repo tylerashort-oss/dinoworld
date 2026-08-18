@@ -180,7 +180,10 @@ interface Eruption {
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 const dist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, ay - by);
 
-export type Theme = "fire" | "ice" | "poison";
+export type Theme = "fire" | "ice" | "poison" | "desert" | "electric" | "shadow";
+
+/** Broad behaviour category so AI never depends on a hard-coded type list. */
+type EnemyKind = "flyer" | "hatchling" | "mini" | "raptor" | "titan";
 
 const ENEMY_STATS: Record<
   EnemyType,
@@ -195,6 +198,7 @@ const ENEMY_STATS: Record<
     sprite: keyof typeof SPRITES;
     bones: number;
     flying?: boolean;
+    kind: EnemyKind;
   }
 > = {
   pterodactyl: {
@@ -208,6 +212,7 @@ const ENEMY_STATS: Record<
     sprite: "pterodactyl",
     bones: 4,
     flying: true,
+    kind: "flyer",
   },
   fireling: {
     hp: 65,
@@ -219,6 +224,7 @@ const ENEMY_STATS: Record<
     name: "Fire Hatchling",
     sprite: "mini_fire_raptor",
     bones: 5,
+    kind: "hatchling",
   },
   mini_fire_raptor: {
     hp: 320,
@@ -230,6 +236,7 @@ const ENEMY_STATS: Record<
     name: "MINI FIRE RAPTOR",
     sprite: "mini_fire_raptor",
     bones: 25,
+    kind: "mini",
   },
   fire_utahraptor: {
     hp: 620,
@@ -241,6 +248,7 @@ const ENEMY_STATS: Record<
     name: "FIRE UTAHRAPTOR",
     sprite: "fire_utahraptor",
     bones: 40,
+    kind: "raptor",
   },
   firesauras: {
     hp: 1500,
@@ -252,6 +260,7 @@ const ENEMY_STATS: Record<
     name: "FIRESAURAS",
     sprite: "firesauras",
     bones: 100,
+    kind: "titan",
   },
   frost_pterodactyl: {
     hp: 70,
@@ -264,6 +273,7 @@ const ENEMY_STATS: Record<
     sprite: "frost_pterodactyl",
     bones: 6,
     flying: true,
+    kind: "flyer",
   },
   snowling: {
     hp: 90,
@@ -275,6 +285,7 @@ const ENEMY_STATS: Record<
     name: "Snow Hatchling",
     sprite: "mini_frost_raptor",
     bones: 7,
+    kind: "hatchling",
   },
   mini_frost_raptor: {
     hp: 460,
@@ -286,6 +297,7 @@ const ENEMY_STATS: Record<
     name: "MINI FROST RAPTOR",
     sprite: "mini_frost_raptor",
     bones: 35,
+    kind: "mini",
   },
   frozen_utahraptor: {
     hp: 820,
@@ -297,6 +309,7 @@ const ENEMY_STATS: Record<
     name: "FROZEN UTAHRAPTOR",
     sprite: "frozen_utahraptor",
     bones: 55,
+    kind: "raptor",
   },
   glacierus: {
     hp: 2100,
@@ -308,6 +321,7 @@ const ENEMY_STATS: Record<
     name: "GLACIERUS",
     sprite: "glacierus",
     bones: 140,
+    kind: "titan",
   },
   vine_pterodactyl: {
     hp: 95,
@@ -320,6 +334,7 @@ const ENEMY_STATS: Record<
     sprite: "vine_pterodactyl",
     bones: 8,
     flying: true,
+    kind: "flyer",
   },
   sporeling: {
     hp: 120,
@@ -331,6 +346,7 @@ const ENEMY_STATS: Record<
     name: "Spore Hatchling",
     sprite: "mini_toxic_raptor",
     bones: 9,
+    kind: "hatchling",
   },
   mini_toxic_raptor: {
     hp: 620,
@@ -342,6 +358,7 @@ const ENEMY_STATS: Record<
     name: "MINI TOXIC RAPTOR",
     sprite: "mini_toxic_raptor",
     bones: 45,
+    kind: "mini",
   },
   toxic_utahraptor: {
     hp: 1100,
@@ -353,6 +370,7 @@ const ENEMY_STATS: Record<
     name: "TOXIC UTAHRAPTOR",
     sprite: "toxic_utahraptor",
     bones: 70,
+    kind: "raptor",
   },
   venomus: {
     hp: 2900,
@@ -364,7 +382,23 @@ const ENEMY_STATS: Record<
     name: "VENOMUS",
     sprite: "venomus",
     bones: 180,
+    kind: "titan",
   },
+  sand_pterodactyl: { hp: 130, speed: 118, radius: 34, size: 110, contact: 14, boss: false, name: "Sand Pterodactyl", sprite: "sand_pterodactyl", bones: 10, flying: true, kind: "flyer" },
+  sandling: { hp: 160, speed: 148, radius: 28, size: 92, contact: 16, boss: false, name: "Sand Hatchling", sprite: "mini_sand_raptor", bones: 11, kind: "hatchling" },
+  mini_sand_raptor: { hp: 800, speed: 184, radius: 44, size: 165, contact: 20, boss: true, name: "MINI SAND RAPTOR", sprite: "mini_sand_raptor", bones: 55, kind: "mini" },
+  sand_utahraptor: { hp: 1400, speed: 206, radius: 55, size: 215, contact: 24, boss: true, name: "SAND UTAHRAPTOR", sprite: "sand_utahraptor", bones: 85, kind: "raptor" },
+  dunecrusher: { hp: 3700, speed: 138, radius: 95, size: 380, contact: 33, boss: true, name: "DUNECRUSHER", sprite: "dunecrusher", bones: 220, kind: "titan" },
+  storm_pterodactyl: { hp: 175, speed: 126, radius: 34, size: 110, contact: 16, boss: false, name: "Storm Pterodactyl", sprite: "storm_pterodactyl", bones: 12, flying: true, kind: "flyer" },
+  sparkling: { hp: 210, speed: 156, radius: 28, size: 92, contact: 18, boss: false, name: "Spark Hatchling", sprite: "mini_storm_raptor", bones: 13, kind: "hatchling" },
+  mini_storm_raptor: { hp: 1020, speed: 192, radius: 44, size: 165, contact: 22, boss: true, name: "MINI STORM RAPTOR", sprite: "mini_storm_raptor", bones: 65, kind: "mini" },
+  storm_utahraptor: { hp: 1750, speed: 214, radius: 55, size: 215, contact: 26, boss: true, name: "STORM UTAHRAPTOR", sprite: "storm_utahraptor", bones: 100, kind: "raptor" },
+  voltasaurus: { hp: 4600, speed: 145, radius: 95, size: 380, contact: 36, boss: true, name: "VOLTASAURUS", sprite: "voltasaurus", bones: 260, kind: "titan" },
+  shadow_pterodactyl: { hp: 230, speed: 134, radius: 34, size: 110, contact: 18, boss: false, name: "Shadow Pterodactyl", sprite: "shadow_pterodactyl", bones: 14, flying: true, kind: "flyer" },
+  shadowling: { hp: 275, speed: 164, radius: 28, size: 92, contact: 20, boss: false, name: "Shadow Hatchling", sprite: "mini_shadow_raptor", bones: 15, kind: "hatchling" },
+  mini_shadow_raptor: { hp: 1300, speed: 200, radius: 44, size: 165, contact: 24, boss: true, name: "MINI SHADOW RAPTOR", sprite: "mini_shadow_raptor", bones: 75, kind: "mini" },
+  shadow_utahraptor: { hp: 2200, speed: 222, radius: 55, size: 215, contact: 28, boss: true, name: "SHADOW UTAHRAPTOR", sprite: "shadow_utahraptor", bones: 120, kind: "raptor" },
+  eclipsaurus: { hp: 5800, speed: 152, radius: 95, size: 380, contact: 40, boss: true, name: "ECLIPSAURUS", sprite: "eclipsaurus", bones: 320, kind: "titan" },
 };
 
 export class GameEngine {
@@ -608,9 +642,25 @@ export class GameEngine {
     return this.theme === "ice";
   }
 
-  /** Pick a value per theme: fire / ice / poison. */
-  private tc<T>(fire: T, ice: T, poison: T): T {
-    return this.theme === "ice" ? ice : this.theme === "poison" ? poison : fire;
+  /**
+   * Pick a value per theme. Desert / electric / shadow are optional and fall
+   * back to the fire / ice / poison value when not supplied.
+   */
+  private tc<T>(fire: T, ice: T, poison: T, desert?: T, electric?: T, shadow?: T): T {
+    switch (this.theme) {
+      case "ice":
+        return ice;
+      case "poison":
+        return poison;
+      case "desert":
+        return desert ?? fire;
+      case "electric":
+        return electric ?? ice;
+      case "shadow":
+        return shadow ?? poison;
+      default:
+        return fire;
+    }
   }
 
   start() {
@@ -1520,7 +1570,35 @@ export class GameEngine {
     t.height = 128;
     const c = t.getContext("2d");
     if (!c) return null;
-    if (this.theme === "poison") {
+    const dark = this.area.cave_dark;
+    if (this.theme === "desert" || this.theme === "electric" || this.theme === "shadow") {
+      const [bg, hi, mid, lo] = this.tc(
+        ["", "", "", ""],
+        ["", "", "", ""],
+        ["", "", "", ""],
+        dark
+          ? ["#2a2013", "rgba(255,225,150,0.16)", "rgba(255,255,255,0.04)", "rgba(40,25,0,0.25)"]
+          : ["#4a3a1d", "rgba(255,235,170,0.18)", "rgba(255,255,255,0.06)", "rgba(70,45,10,0.25)"],
+        dark
+          ? ["#131a2e", "rgba(150,200,255,0.20)", "rgba(255,255,255,0.05)", "rgba(0,10,40,0.28)"]
+          : ["#1d2748", "rgba(170,215,255,0.22)", "rgba(255,255,255,0.06)", "rgba(4,10,45,0.26)"],
+        dark
+          ? ["#0b0a16", "rgba(180,160,255,0.16)", "rgba(255,255,255,0.04)", "rgba(0,0,0,0.32)"]
+          : ["#14122a", "rgba(200,180,255,0.18)", "rgba(255,255,255,0.05)", "rgba(0,0,0,0.3)"],
+      ) as string[];
+      c.fillStyle = bg as string;
+      c.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 240; i++) {
+        const v = Math.random();
+        c.fillStyle = (v > 0.9 ? hi : v > 0.55 ? mid : lo) as string;
+        c.fillRect(
+          Math.random() * 128,
+          Math.random() * 128,
+          1 + Math.random() * 4,
+          1 + Math.random() * 4,
+        );
+      }
+    } else if (this.theme === "poison") {
       c.fillStyle = this.area.cave_dark ? "#111f14" : "#1b3320";
       c.fillRect(0, 0, 128, 128);
       for (let i = 0; i < 240; i++) {
@@ -1621,9 +1699,26 @@ export class GameEngine {
     );
     g.addColorStop(
       0,
-      this.tc("rgba(255,90,20,0.10)", "rgba(150,220,255,0.10)", "rgba(140,255,90,0.10)"),
+      this.tc(
+        "rgba(255,90,20,0.10)",
+        "rgba(150,220,255,0.10)",
+        "rgba(140,255,90,0.10)",
+        "rgba(255,205,110,0.12)",
+        "rgba(180,220,255,0.12)",
+        "rgba(150,130,255,0.10)",
+      ),
     );
-    g.addColorStop(1, this.tc("rgba(0,0,0,0.45)", "rgba(0,10,30,0.45)", "rgba(0,20,8,0.45)"));
+    g.addColorStop(
+      1,
+      this.tc(
+        "rgba(0,0,0,0.45)",
+        "rgba(0,10,30,0.45)",
+        "rgba(0,20,8,0.45)",
+        "rgba(40,20,0,0.42)",
+        "rgba(4,6,34,0.5)",
+        "rgba(0,0,14,0.62)",
+      ),
+    );
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.area.w, this.area.h);
 
@@ -1664,9 +1759,26 @@ export class GameEngine {
   }
 
   private drawLava(ctx: CanvasRenderingContext2D) {
-    const ice = this.isIce;
-    const poison = this.theme === "poison";
-    const p3 = <T>(fire: T, iceV: T, poisonV: T) => (poison ? poisonV : ice ? iceV : fire);
+    const p3 = <T>(fire: T, iceV: T, poisonV: T, d?: T, e?: T, s?: T) =>
+      this.tc(fire, iceV, poisonV, d, e, s);
+    /** Base pool gradient stops per theme: [top, middle, bottom]. */
+    const base = this.tc(
+      ["#8c1c00", "#d63b00", "#6d1400"],
+      ["#1d5c8f", "#2c86c4", "#123f66"],
+      ["#1f5a1c", "#4f9c26", "#123f13"],
+      ["#7a4a12", "#d99a2c", "#5a340c"],
+      ["#1a2f7a", "#5f8bff", "#101a4d"],
+      ["#2a1250", "#6b3fc4", "#150a2c"],
+    );
+    /** Hot vein gradient stops per theme. */
+    const vein = this.tc(
+      ["255,240,170", "255,140,20", "180,40,0"],
+      ["190,240,255", "120,200,255", "20,70,120"],
+      ["210,255,150", "120,220,60", "20,80,20"],
+      ["255,238,180", "244,190,80", "150,90,10"],
+      ["235,245,255", "120,180,255", "20,40,160"],
+      ["225,205,255", "150,100,240", "50,20,110"],
+    );
     for (const r of this.area.lava) {
       const t = this.time;
       ctx.save();
@@ -1676,19 +1788,9 @@ export class GameEngine {
 
       // molten base
       const lg = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
-      if (poison) {
-        lg.addColorStop(0, "#1f5a1c");
-        lg.addColorStop(0.5, "#4f9c26");
-        lg.addColorStop(1, "#123f13");
-      } else if (ice) {
-        lg.addColorStop(0, "#1d5c8f");
-        lg.addColorStop(0.5, "#2c86c4");
-        lg.addColorStop(1, "#123f66");
-      } else {
-        lg.addColorStop(0, "#8c1c00");
-        lg.addColorStop(0.5, "#d63b00");
-        lg.addColorStop(1, "#6d1400");
-      }
+      lg.addColorStop(0, base[0] as string);
+      lg.addColorStop(0.5, base[1] as string);
+      lg.addColorStop(1, base[2] as string);
       ctx.fillStyle = lg;
       ctx.fillRect(r.x, r.y, r.w, r.h);
 
@@ -1704,18 +1806,9 @@ export class GameEngine {
           const rad = Math.min(r.w / cols, r.h / rows) * 0.72 * (0.75 + seed * 0.4);
           const heat = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * 1.4 + seed * 12));
           const g = ctx.createRadialGradient(px + drift, py, 2, px + drift, py, rad);
-          if (poison) {
-            g.addColorStop(0, `rgba(210,255,150,${0.6 * heat})`);
-            g.addColorStop(0.45, `rgba(120,220,60,${0.5 * heat})`);
-            g.addColorStop(1, "rgba(20,80,20,0)");
-          } else if (ice) {
-            g.addColorStop(0, `rgba(190,240,255,${0.55 * heat})`);
-            g.addColorStop(1, "rgba(20,70,120,0)");
-          } else {
-            g.addColorStop(0, `rgba(255,240,170,${0.85 * heat})`);
-            g.addColorStop(0.45, `rgba(255,140,20,${0.6 * heat})`);
-            g.addColorStop(1, "rgba(180,40,0,0)");
-          }
+          g.addColorStop(0, `rgba(${vein[0]},${0.75 * heat})`);
+          g.addColorStop(0.45, `rgba(${vein[1]},${0.55 * heat})`);
+          g.addColorStop(1, `rgba(${vein[2]},0)`);
           ctx.fillStyle = g;
           ctx.beginPath();
           ctx.ellipse(px + drift, py, rad, rad * 0.78, 0, 0, Math.PI * 2);
@@ -1724,7 +1817,7 @@ export class GameEngine {
       }
 
       // dark floating crust plates
-      ctx.globalAlpha = p3(0.55, 0.45, 0.5);
+      ctx.globalAlpha = p3(0.55, 0.45, 0.5, 0.5, 0.4, 0.5);
       for (let i = 0; i < Math.max(3, Math.round((r.w * r.h) / 26000)); i++) {
         const s1 = GameEngine.hash(r.x + i * 7, r.y + i * 3);
         const s2 = GameEngine.hash(r.y + i * 11, r.x + i * 5);
@@ -1732,7 +1825,7 @@ export class GameEngine {
         const cyp = r.y + s2 * r.h + Math.cos(t * 0.3 + i * 1.7) * 7;
         const w = 22 + s1 * 40;
         const h = 14 + s2 * 26;
-        ctx.fillStyle = p3("#2a1710", "#cfe9f8", "#1c3a17");
+        ctx.fillStyle = p3("#2a1710", "#cfe9f8", "#1c3a17", "#c9a568", "#20306e", "#1a1030");
         ctx.beginPath();
         ctx.ellipse(cxp, cyp, w, h, s1 * 3, 0, Math.PI * 2);
         ctx.fill();
@@ -1756,6 +1849,9 @@ export class GameEngine {
           `rgba(255,226,140,${0.75 * swell})`,
           `rgba(225,248,255,${0.5 * swell})`,
           `rgba(214,255,150,${0.7 * swell})`,
+          `rgba(255,236,180,${0.7 * swell})`,
+          `rgba(210,235,255,${0.65 * swell})`,
+          `rgba(220,200,255,${0.6 * swell})`,
         );
         ctx.arc(bx, by, br, 0, Math.PI * 2);
         ctx.fill();
@@ -1764,6 +1860,9 @@ export class GameEngine {
           `rgba(255,120,20,${0.6 * swell})`,
           `rgba(255,255,255,${0.5 * swell})`,
           `rgba(140,240,70,${0.6 * swell})`,
+          `rgba(240,180,60,${0.6 * swell})`,
+          `rgba(120,190,255,${0.7 * swell})`,
+          `rgba(160,110,255,${0.6 * swell})`,
         );
         ctx.lineWidth = 2;
         ctx.arc(bx, by, br * 1.25, 0, Math.PI * 2);
@@ -1772,7 +1871,7 @@ export class GameEngine {
 
       // steam wisps drifting off the surface
       ctx.globalAlpha = 0.14;
-      ctx.fillStyle = p3("#ffb987", "#dff3ff", "#cdf7a3");
+      ctx.fillStyle = p3("#ffb987", "#dff3ff", "#cdf7a3", "#ffe0a8", "#cfe4ff", "#cbb4ff");
       for (let i = 0; i < 5; i++) {
         const s1 = GameEngine.hash(r.x + i * 41, r.y + i * 53);
         const sx = r.x + s1 * r.w + Math.sin(t * 0.8 + i * 2) * 18;
@@ -1790,15 +1889,32 @@ export class GameEngine {
         "rgba(255,90,10,0.9)",
         "rgba(120,200,255,0.85)",
         "rgba(120,240,60,0.85)",
+        "rgba(255,190,60,0.85)",
+        "rgba(90,150,255,0.9)",
+        "rgba(150,90,255,0.85)",
       );
       ctx.shadowBlur = 26 + 14 * (0.5 + 0.5 * Math.sin(t * 2 + r.x * 0.01));
-      ctx.strokeStyle = p3("rgba(255,150,40,.55)", "rgba(180,230,255,.55)", "rgba(160,245,90,.55)");
+      ctx.strokeStyle = p3(
+        "rgba(255,150,40,.55)",
+        "rgba(180,230,255,.55)",
+        "rgba(160,245,90,.55)",
+        "rgba(255,205,110,.55)",
+        "rgba(140,190,255,.6)",
+        "rgba(180,130,255,.55)",
+      );
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.roundRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4, 24);
       ctx.stroke();
       ctx.restore();
-      ctx.strokeStyle = p3("rgba(38,22,16,.92)", "rgba(210,235,250,.85)", "rgba(20,44,20,.92)");
+      ctx.strokeStyle = p3(
+        "rgba(38,22,16,.92)",
+        "rgba(210,235,250,.85)",
+        "rgba(20,44,20,.92)",
+        "rgba(120,88,44,.9)",
+        "rgba(30,44,110,.9)",
+        "rgba(24,14,44,.92)",
+      );
       ctx.lineWidth = 7;
       ctx.beginPath();
       ctx.roundRect(r.x, r.y, r.w, r.h, 26);
@@ -1867,6 +1983,27 @@ export class GameEngine {
         low: "#3a4a2c",
         dark: "#1f2a18",
         speck: "rgba(190,240,150,.45)",
+      },
+      {
+        top: "#e0bd82",
+        mid: "#b28a51",
+        low: "#7c5c31",
+        dark: "#4a361b",
+        speck: "rgba(255,240,200,.45)",
+      },
+      {
+        top: "#9aa6c9",
+        mid: "#6a76a0",
+        low: "#454e75",
+        dark: "#252b47",
+        speck: "rgba(180,225,255,.55)",
+      },
+      {
+        top: "#6f6790",
+        mid: "#4a4468",
+        low: "#2e2a45",
+        dark: "#171526",
+        speck: "rgba(200,180,255,.45)",
       },
     );
     for (const r of this.area.rocks) {
@@ -1948,6 +2085,9 @@ export class GameEngine {
         "rgba(255,140,60,.35)",
         "rgba(190,235,255,.5)",
         "rgba(150,240,90,.45)",
+        "rgba(255,215,130,.45)",
+        "rgba(160,220,255,.55)",
+        "rgba(190,170,255,.4)",
       );
       ctx.lineWidth = 2.5;
       ctx.stroke(path);
@@ -2207,6 +2347,18 @@ export class GameEngine {
         g.addColorStop(0, "#f2fdff");
         g.addColorStop(0.4, "#63cbff");
         g.addColorStop(1, "rgba(20,120,220,0)");
+      } else if (p.theme === "desert") {
+        g.addColorStop(0, "#fff3cf");
+        g.addColorStop(0.4, "#e2ab48");
+        g.addColorStop(1, "rgba(150,100,20,0)");
+      } else if (p.theme === "electric") {
+        g.addColorStop(0, "#ffffff");
+        g.addColorStop(0.4, "#7fd0ff");
+        g.addColorStop(1, "rgba(40,80,255,0)");
+      } else if (p.theme === "shadow") {
+        g.addColorStop(0, "#efe4ff");
+        g.addColorStop(0.4, "#9b5cff");
+        g.addColorStop(1, "rgba(50,10,110,0)");
       } else {
         g.addColorStop(0, "#fff6c9");
         g.addColorStop(0.4, "#ffa42b");
