@@ -7,6 +7,7 @@ import { playSfx } from "./audio";
 export interface HudState {
   hp: number;
   maxHp: number;
+  shield: number;
   bones: number;
   areaName: string;
   areaSubtitle: string;
@@ -42,6 +43,16 @@ interface EngineOpts {
   openedChest: boolean;
   foundCaves: Record<string, boolean>;
   keybinds?: Keybinds;
+  /** Enemy health / count scaling for the world (1 = Volcanic Lands, 2 = Ice World...). */
+  difficulty?: number;
+  /** Bone Forge upgrades. */
+  damageMul?: number;
+  petMul?: number;
+  bonusMaxHp?: number;
+  /** Pink Explorer perks. */
+  petHits?: number;
+  magnet?: number;
+  shield?: number;
   onHud: (h: HudState) => void;
   onEvent: (e: GameEvent) => void;
 }
@@ -89,6 +100,7 @@ interface Projectile {
   dmg: number;
   life: number;
   fromPlayer: boolean;
+  ice: boolean;
 }
 
 interface Particle {
