@@ -1,5 +1,7 @@
-import { AREAS, type AreaDef, type EnemyType, type Rect } from "./areas";
-import { PETS, RUN_SHEETS, SPRITES, WEAPONS, getCharacter, getPet, getWeapon } from "./content";
+import { AREAS, type AreaDef, type EnemyType } from "./areas";
+import { getAreas } from "./worlds";
+import { RUN_SHEETS, SPRITES, getCharacter, getPet, getWeapon } from "./content";
+import { defaultKeybinds, type ActionId, type Keybinds } from "./keybinds";
 import { playSfx } from "./audio";
 
 export interface HudState {
@@ -26,6 +28,7 @@ export type GameEvent =
   | { type: "caveFound"; cardId: string }
   | { type: "areaExit"; areaIndex: number }
   | { type: "bonesChanged"; bones: number }
+  | { type: "pauseRequested" }
   | { type: "banner"; text: string };
 
 interface EngineOpts {
@@ -33,10 +36,12 @@ interface EngineOpts {
   characterId: string;
   weaponId: string;
   petId: string | null;
+  world: number;
   areaIndex: number;
   bones: number;
   openedChest: boolean;
   foundCaves: Record<string, boolean>;
+  keybinds?: Keybinds;
   onHud: (h: HudState) => void;
   onEvent: (e: GameEvent) => void;
 }
@@ -62,6 +67,10 @@ interface Enemy {
   boss: boolean;
   name: string;
   sprite: HTMLImageElement | null;
+  runSheet: HTMLImageElement | null;
+  runFrames: number;
+  runPhase: number;
+  flying: boolean;
   shootTimer: number;
   hitFlash: number;
   contactCd: number;
@@ -140,6 +149,11 @@ const ENEMY_STATS: Record<
   mini_fire_raptor: { hp: 320, speed: 160, radius: 44, size: 165, contact: 14, boss: true, name: "MINI FIRE RAPTOR", sprite: "mini_fire_raptor", bones: 25 },
   fire_utahraptor: { hp: 620, speed: 185, radius: 55, size: 215, contact: 18, boss: true, name: "FIRE UTAHRAPTOR", sprite: "fire_utahraptor", bones: 40 },
   firesauras: { hp: 1500, speed: 115, radius: 95, size: 380, contact: 22, boss: true, name: "FIRESAURAS", sprite: "firesauras", bones: 100 },
+  frost_pterodactyl: { hp: 70, speed: 105, radius: 34, size: 110, contact: 10, boss: false, name: "Frost Pterodactyl", sprite: "frost_pterodactyl", bones: 6, flying: true },
+  snowling: { hp: 90, speed: 135, radius: 28, size: 92, contact: 12, boss: false, name: "Snow Hatchling", sprite: "mini_frost_raptor", bones: 7 },
+  mini_frost_raptor: { hp: 460, speed: 170, radius: 44, size: 165, contact: 16, boss: true, name: "MINI FROST RAPTOR", sprite: "mini_frost_raptor", bones: 35 },
+  frozen_utahraptor: { hp: 820, speed: 195, radius: 55, size: 215, contact: 20, boss: true, name: "FROZEN UTAHRAPTOR", sprite: "frozen_utahraptor", bones: 55 },
+  glacierus: { hp: 2100, speed: 125, radius: 95, size: 380, contact: 26, boss: true, name: "GLACIERUS", sprite: "glacierus", bones: 140 },
 };
 
 export class GameEngine {
@@ -153,7 +167,10 @@ export class GameEngine {
 
   private area!: AreaDef;
   private areaIndex: number;
+  private worldId: number;
+  private areas: AreaDef[];
   private opts: EngineOpts;
+  private keybinds: Keybinds;
 
   private images: Record<string, HTMLImageElement | undefined> = {};
 
@@ -215,6 +232,9 @@ export class GameEngine {
     const c = this.canvas.getContext("2d");
     if (!c) throw new Error("Canvas 2D unavailable");
     this.ctx = c;
+    this.worldId = opts.world;
+    this.areas = getAreas(this.worldId);
+    this.keybinds = opts.keybinds ?? defaultKeybinds();
     this.areaIndex = opts.areaIndex;
     this.weaponId = opts.weaponId;
     this.petId = opts.petId;
@@ -270,13 +290,28 @@ export class GameEngine {
     if (!p) this.last = performance.now();
   }
 
+  setKeybinds(kb: Keybinds) {
+    this.keybinds = kb;
+  }
+
+  /** Switch the engine to another world and load its first area. */
+  loadWorld(worldId: number, areaIndex = 0) {
+    this.worldId = worldId;
+    this.areas = getAreas(worldId);
+    this.loadArea(areaIndex);
+  }
+
+  getWorldId() {
+    return this.worldId;
+  }
+
   setInput(v: Vec) {
     this.input = v;
   }
 
   loadArea(index: number) {
-    this.areaIndex = clamp(index, 0, AREAS.length - 1);
-    const area = AREAS[this.areaIndex] as AreaDef;
+    this.areaIndex = clamp(index, 0, this.areas.length - 1);
+    const area = this.areas[this.areaIndex] as AreaDef;
     this.area = area;
     this.px = area.spawn.x;
     this.py = area.spawn.y;
@@ -299,7 +334,7 @@ export class GameEngine {
     this.exitOpen = area.waves.length === 0 && !area.chest;
     this.chestOpen = false;
     this.caveFound = !!this.opts.foundCaves[area.id];
-    if (area.id === "treasure_room" && this.opts.openedChest) {
+    if (area.chest && this.opts.openedChest && area.id === "treasure_room") {
       this.chestOpen = true;
       this.exitOpen = true;
     }
@@ -321,6 +356,11 @@ export class GameEngine {
     return this.areaIndex;
   }
 
+  /** True when the current area uses the frozen theme. */
+  private get isIce() {
+    return this.area?.theme === "ice";
+  }
+
   start() {
     if (this.running) return;
     this.running = true;
@@ -335,22 +375,34 @@ export class GameEngine {
     window.removeEventListener("keyup", this.onKeyUp);
   }
 
-  private onKeyDown = (e: KeyboardEvent) => {
-    this.keys[e.key.toLowerCase()] = true;
-    const k = e.key.toLowerCase();
-    if (k === " ") {
-      e.preventDefault();
-      this.jump();
+  private actionsFor(code: string): ActionId[] {
+    const out: ActionId[] = [];
+    for (const id of Object.keys(this.keybinds) as ActionId[]) {
+      if ((this.keybinds[id] ?? []).includes(code)) out.push(id);
     }
-    if (k === "j") this.attack();
-    if (k === "k") this.petAttack();
-    if (k === "j" || k === "f" || k === "enter") this.attackHeld = true;
+    return out;
+  }
+
+  private onKeyDown = (e: KeyboardEvent) => {
+    if (e.repeat) return;
+    const acts = this.actionsFor(e.code);
+    if (acts.length === 0) return;
+    e.preventDefault();
+    for (const a of acts) {
+      this.keys[a] = true;
+      if (a === "attack") this.setAttackHeld(true);
+      if (a === "pet") this.petAttack();
+      if (a === "jump") this.jump();
+      if (a === "pause") this.opts.onEvent({ type: "pauseRequested" });
+    }
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
-    this.keys[e.key.toLowerCase()] = false;
-    const k = e.key.toLowerCase();
-    if (k === "j" || k === "f" || k === "enter") this.attackHeld = false;
+    const acts = this.actionsFor(e.code);
+    for (const a of acts) {
+      this.keys[a] = false;
+      if (a === "attack") this.setAttackHeld(false);
+    }
   };
 
   banner(text: string) {
@@ -628,6 +680,7 @@ export class GameEngine {
     if (!wave) return;
     for (const s of wave) {
       const st = ENEMY_STATS[s.type]!;
+      const runSheet = RUN_SHEETS[st.sprite];
       this.enemies.push({
         type: s.type,
         x: s.x,
@@ -644,6 +697,10 @@ export class GameEngine {
         boss: st.boss,
         name: st.name,
         sprite: this.images[st.sprite] ?? null,
+        runSheet: this.images[`${st.sprite}__run`] ?? null,
+        runFrames: runSheet?.frames ?? 4,
+        runPhase: Math.random(),
+        flying: !!st.flying,
         shootTimer: 1 + Math.random() * 2,
         hitFlash: 0,
         contactCd: 0,
@@ -685,10 +742,10 @@ export class GameEngine {
     // ---- input vector
     let ix = this.input.x;
     let iy = this.input.y;
-    if (this.keys["a"] || this.keys["arrowleft"]) ix -= 1;
-    if (this.keys["d"] || this.keys["arrowright"]) ix += 1;
-    if (this.keys["w"] || this.keys["arrowup"]) iy -= 1;
-    if (this.keys["s"] || this.keys["arrowdown"]) iy += 1;
+    if (this.keys["left"]) ix -= 1;
+    if (this.keys["right"]) ix += 1;
+    if (this.keys["up"]) iy -= 1;
+    if (this.keys["down"]) iy += 1;
     const mag = Math.hypot(ix, iy);
     if (mag > 1) {
       ix /= mag;
@@ -723,7 +780,7 @@ export class GameEngine {
           vy: -30 - Math.random() * 30,
           life: 0.35,
           maxLife: 0.35,
-          color: "rgba(255,200,150,.55)",
+          color: this.isIce ? "rgba(225,245,255,.65)" : "rgba(255,200,150,.55)",
           size: 5 + Math.random() * 4,
         });
       }
@@ -756,7 +813,7 @@ export class GameEngine {
           vy: -60,
           life: 0.4,
           maxLife: 0.4,
-          color: "#ff7b28",
+          color: this.isIce ? "#9fdcff" : "#ff7b28",
           size: 7,
         });
     }
@@ -779,18 +836,20 @@ export class GameEngine {
     for (const e of this.enemies) {
       e.hitFlash = Math.max(0, e.hitFlash - dt);
       e.contactCd = Math.max(0, e.contactCd - dt);
+      const eprevX = e.x;
+      const eprevY = e.y;
       const d = dist(e.x, e.y, this.px, this.py);
       const ang = Math.atan2(this.py - e.y, this.px - e.x);
       e.facing = this.px > e.x ? 1 : -1;
 
-      if (e.type === "firesauras" && !e.enraged && e.hp < e.maxHp * 0.5) {
+      if (e.boss && (e.type === "firesauras" || e.type === "glacierus") && !e.enraged && e.hp < e.maxHp * 0.5) {
         e.enraged = true;
-        e.speed = 175;
-        this.banner("FIRESAURAS IS ENRAGED!");
+        e.speed = e.speed * 1.5;
+        this.banner(`${e.name} IS ENRAGED!`);
         playSfx("boss");
       }
 
-      if (e.type === "pterodactyl") {
+      if (e.flying) {
         const want = 240;
         const dir = d > want + 40 ? 1 : d < want - 40 ? -1 : 0;
         e.x += Math.cos(ang) * e.speed * dir * dt;
@@ -800,7 +859,7 @@ export class GameEngine {
           e.shootTimer = 2.2;
           this.shoot(e.x, e.y, ang, 260, 9);
         }
-      } else if (e.type === "firesauras") {
+      } else if (e.type === "firesauras" || e.type === "glacierus") {
         const spd = e.speed * (d > 170 ? 1 : 0);
         e.x += Math.cos(ang) * spd * dt;
         e.y += Math.sin(ang) * spd * dt;
@@ -817,7 +876,7 @@ export class GameEngine {
       } else {
         // chasers: fireling, mini raptor, utahraptor
         let spd = e.speed;
-        if (e.type === "fire_utahraptor") {
+        if (e.type === "fire_utahraptor" || e.type === "frozen_utahraptor") {
           e.dashTimer -= dt;
           if (e.dashTimer <= 0) {
             spd = e.speed * 2.4;
@@ -828,7 +887,7 @@ export class GameEngine {
           e.x += Math.cos(ang) * spd * dt;
           e.y += Math.sin(ang) * spd * dt;
         }
-        if (e.type === "mini_fire_raptor") {
+        if (e.type === "mini_fire_raptor" || e.type === "mini_frost_raptor") {
           e.shootTimer -= dt;
           if (e.shootTimer <= 0) {
             e.shootTimer = 3.6;
@@ -840,8 +899,31 @@ export class GameEngine {
       e.x = clamp(e.x, 40, area.w - 40);
       e.y = clamp(e.y, 40, area.h - 40);
 
+      // ---- leg / wing animation driven by real distance moved
+      if (e.flying) {
+        e.runPhase += dt * 2.4;
+      } else {
+        const emoved = Math.hypot(e.x - eprevX, e.y - eprevY);
+        if (emoved > 0.2) {
+          const prevPhase = e.runPhase;
+          e.runPhase += emoved / (e.size * 0.55);
+          if (Math.floor(prevPhase * e.runFrames) !== Math.floor(e.runPhase * e.runFrames)) {
+            this.particles.push({
+              x: e.x - e.facing * e.size * 0.14,
+              y: e.y + e.size * 0.1,
+              vx: -e.facing * (20 + Math.random() * 30),
+              vy: -20 - Math.random() * 25,
+              life: 0.32,
+              maxLife: 0.32,
+              color: this.isIce ? "rgba(220,240,255,.65)" : "rgba(255,200,150,.5)",
+              size: 4 + Math.random() * 4,
+            });
+          }
+        }
+      }
+
       // contact damage
-      if (d < e.radius + 22 && e.contactCd <= 0 && (e.type !== "pterodactyl" ? true : this.pz < 40)) {
+      if (d < e.radius + 22 && e.contactCd <= 0 && (!e.flying || this.pz < 40)) {
         e.contactCd = 0.9;
         this.hurtPlayer(e.contactDamage);
       }
@@ -1040,13 +1122,24 @@ export class GameEngine {
     t.height = 128;
     const c = t.getContext("2d");
     if (!c) return null;
-    c.fillStyle = this.area.cave_dark ? "#1b1013" : "#241a18";
-    c.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 220; i++) {
-      const v = Math.random();
-      c.fillStyle =
-        v > 0.94 ? "rgba(255,120,40,0.22)" : v > 0.6 ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.25)";
-      c.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 4, 1 + Math.random() * 4);
+    if (this.isIce) {
+      c.fillStyle = this.area.cave_dark ? "#152233" : "#20344a";
+      c.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 240; i++) {
+        const v = Math.random();
+        c.fillStyle =
+          v > 0.9 ? "rgba(200,235,255,0.22)" : v > 0.55 ? "rgba(255,255,255,0.05)" : "rgba(0,20,40,0.25)";
+        c.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 4, 1 + Math.random() * 4);
+      }
+    } else {
+      c.fillStyle = this.area.cave_dark ? "#1b1013" : "#241a18";
+      c.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 220; i++) {
+        const v = Math.random();
+        c.fillStyle =
+          v > 0.94 ? "rgba(255,120,40,0.22)" : v > 0.6 ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.25)";
+        c.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 4, 1 + Math.random() * 4);
+      }
     }
     return this.ctx.createPattern(t, "repeat");
   }
@@ -1089,8 +1182,8 @@ export class GameEngine {
       this.area.h * 0.4,
       Math.max(this.area.w, this.area.h) * 0.7,
     );
-    g.addColorStop(0, "rgba(255,90,20,0.10)");
-    g.addColorStop(1, "rgba(0,0,0,0.45)");
+    g.addColorStop(0, this.isIce ? "rgba(150,220,255,0.10)" : "rgba(255,90,20,0.10)");
+    g.addColorStop(1, this.isIce ? "rgba(0,10,30,0.45)" : "rgba(0,0,0,0.45)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.area.w, this.area.h);
 
@@ -1124,24 +1217,127 @@ export class GameEngine {
     }
   }
 
+  /** Deterministic pseudo-random so pool/rock detail never flickers. */
+  private static hash(a: number, b: number) {
+    const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  }
+
   private drawLava(ctx: CanvasRenderingContext2D) {
+    const ice = this.isIce;
     for (const r of this.area.lava) {
-      const pulse = 0.5 + 0.5 * Math.sin(this.time * 2 + r.x * 0.01);
+      const t = this.time;
       ctx.save();
-      ctx.shadowColor = "rgba(255,90,10,0.9)";
-      ctx.shadowBlur = 30 + pulse * 20;
-      const lg = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
-      lg.addColorStop(0, "#ff6a00");
-      lg.addColorStop(0.5, `rgba(255,${170 + pulse * 50},40,1)`);
-      lg.addColorStop(1, "#e03b00");
-      ctx.fillStyle = lg;
       ctx.beginPath();
-      const rad = 26;
-      ctx.roundRect(r.x, r.y, r.w, r.h, rad);
-      ctx.fill();
+      ctx.roundRect(r.x, r.y, r.w, r.h, 26);
+      ctx.clip();
+
+      // molten base
+      const lg = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
+      if (ice) {
+        lg.addColorStop(0, "#1d5c8f");
+        lg.addColorStop(0.5, "#2c86c4");
+        lg.addColorStop(1, "#123f66");
+      } else {
+        lg.addColorStop(0, "#8c1c00");
+        lg.addColorStop(0.5, "#d63b00");
+        lg.addColorStop(1, "#6d1400");
+      }
+      ctx.fillStyle = lg;
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+
+      // flowing hot veins between crust plates
+      const cols = Math.max(2, Math.round(r.w / 58));
+      const rows = Math.max(2, Math.round(r.h / 58));
+      for (let cx = 0; cx < cols; cx++) {
+        for (let cy = 0; cy < rows; cy++) {
+          const seed = GameEngine.hash(r.x + cx * 13, r.y + cy * 29);
+          const px = r.x + ((cx + 0.5) / cols) * r.w;
+          const py = r.y + ((cy + 0.5) / rows) * r.h;
+          const drift = Math.sin(t * 0.6 + seed * 8) * 10;
+          const rad = (Math.min(r.w / cols, r.h / rows) * 0.72) * (0.75 + seed * 0.4);
+          const heat = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * 1.4 + seed * 12));
+          const g = ctx.createRadialGradient(px + drift, py, 2, px + drift, py, rad);
+          if (ice) {
+            g.addColorStop(0, `rgba(190,240,255,${0.55 * heat})`);
+            g.addColorStop(1, "rgba(20,70,120,0)");
+          } else {
+            g.addColorStop(0, `rgba(255,240,170,${0.85 * heat})`);
+            g.addColorStop(0.45, `rgba(255,140,20,${0.6 * heat})`);
+            g.addColorStop(1, "rgba(180,40,0,0)");
+          }
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.ellipse(px + drift, py, rad, rad * 0.78, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // dark floating crust plates
+      ctx.globalAlpha = ice ? 0.45 : 0.55;
+      for (let i = 0; i < Math.max(3, Math.round((r.w * r.h) / 26000)); i++) {
+        const s1 = GameEngine.hash(r.x + i * 7, r.y + i * 3);
+        const s2 = GameEngine.hash(r.y + i * 11, r.x + i * 5);
+        const cxp = r.x + s1 * r.w + Math.sin(t * 0.35 + i) * 9;
+        const cyp = r.y + s2 * r.h + Math.cos(t * 0.3 + i * 1.7) * 7;
+        const w = 22 + s1 * 40;
+        const h = 14 + s2 * 26;
+        ctx.fillStyle = ice ? "#cfe9f8" : "#2a1710";
+        ctx.beginPath();
+        ctx.ellipse(cxp, cyp, w, h, s1 * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // boiling bubbles — rise, swell and pop on a loop
+      const bubbles = Math.max(4, Math.round((r.w * r.h) / 12000));
+      for (let i = 0; i < bubbles; i++) {
+        const s1 = GameEngine.hash(r.x * 0.5 + i * 17, r.y * 0.5 + i * 23);
+        const s2 = GameEngine.hash(r.y * 0.7 + i * 31, r.x * 0.3 + i * 19);
+        const period = 1.4 + s2 * 2.2;
+        const phase = ((t + s1 * period) % period) / period;
+        const bx = r.x + 12 + s1 * (r.w - 24);
+        const by = r.y + 12 + ((s2 * (r.h - 24) - phase * 34 + r.h) % (r.h - 24));
+        const swell = Math.sin(phase * Math.PI);
+        const br = (5 + s1 * 9) * swell;
+        if (br <= 0.4) continue;
+        ctx.beginPath();
+        ctx.fillStyle = ice ? `rgba(225,248,255,${0.5 * swell})` : `rgba(255,226,140,${0.75 * swell})`;
+        ctx.arc(bx, by, br, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.strokeStyle = ice ? `rgba(255,255,255,${0.5 * swell})` : `rgba(255,120,20,${0.6 * swell})`;
+        ctx.lineWidth = 2;
+        ctx.arc(bx, by, br * 1.25, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // steam wisps drifting off the surface
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = ice ? "#dff3ff" : "#ffb987";
+      for (let i = 0; i < 5; i++) {
+        const s1 = GameEngine.hash(r.x + i * 41, r.y + i * 53);
+        const sx = r.x + s1 * r.w + Math.sin(t * 0.8 + i * 2) * 18;
+        const sy = r.y + r.h - ((t * 22 + s1 * 400) % (r.h + 40));
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, 26 + s1 * 20, 12 + s1 * 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
       ctx.restore();
-      ctx.strokeStyle = "rgba(40,20,15,.9)";
-      ctx.lineWidth = 6;
+
+      // glowing rim + cooled rock edge
+      ctx.save();
+      ctx.shadowColor = ice ? "rgba(120,200,255,0.85)" : "rgba(255,90,10,0.9)";
+      ctx.shadowBlur = 26 + 14 * (0.5 + 0.5 * Math.sin(t * 2 + r.x * 0.01));
+      ctx.strokeStyle = ice ? "rgba(180,230,255,.55)" : "rgba(255,150,40,.55)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4, 24);
+      ctx.stroke();
+      ctx.restore();
+      ctx.strokeStyle = ice ? "rgba(210,235,250,.85)" : "rgba(38,22,16,.92)";
+      ctx.lineWidth = 7;
       ctx.beginPath();
       ctx.roundRect(r.x, r.y, r.w, r.h, 26);
       ctx.stroke();
@@ -1179,27 +1375,88 @@ export class GameEngine {
   }
 
   private drawRocks(ctx: CanvasRenderingContext2D) {
+    const ice = this.isIce;
+    // Basalt grey-blue boulders (ice world: pale glacier stone)
+    const pal = ice
+      ? { top: "#c6d9e6", mid: "#8fa9bd", low: "#5c748a", dark: "#3a4d5f", speck: "rgba(255,255,255,.5)" }
+      : { top: "#8b93a1", mid: "#5f6774", low: "#3c424d", dark: "#22262e", speck: "rgba(210,220,235,.35)" };
     for (const r of this.area.rocks) {
+      const cx = r.x + r.w / 2;
+      const cy = r.y + r.h / 2;
       ctx.save();
-      ctx.fillStyle = "rgba(0,0,0,.45)";
+
+      // contact shadow
+      ctx.fillStyle = "rgba(0,0,0,.42)";
       ctx.beginPath();
-      ctx.ellipse(r.x + r.w / 2, r.y + r.h * 0.95, r.w * 0.6, r.h * 0.25, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, r.y + r.h * 0.97, r.w * 0.58, r.h * 0.2, 0, 0, Math.PI * 2);
+      ctx.filter = "blur(1px)";
       ctx.fill();
-      const g = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
-      g.addColorStop(0, "#4a4046");
-      g.addColorStop(1, "#191418");
+      ctx.filter = "none";
+
+      // irregular boulder silhouette
+      const pts: [number, number][] = [];
+      const n = 11;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const wob = 0.78 + GameEngine.hash(r.x + i * 9.1, r.y + i * 4.3) * 0.34;
+        pts.push([cx + Math.cos(a) * r.w * 0.5 * wob, cy + Math.sin(a) * r.h * 0.5 * wob]);
+      }
+      const path = new Path2D();
+      path.moveTo(pts[0]![0], pts[0]![1]);
+      for (let i = 1; i < pts.length; i++) path.lineTo(pts[i]![0], pts[i]![1]);
+      path.closePath();
+
+      const g = ctx.createLinearGradient(r.x, r.y, r.x + r.w * 0.4, r.y + r.h);
+      g.addColorStop(0, pal.top);
+      g.addColorStop(0.45, pal.mid);
+      g.addColorStop(1, pal.dark);
       ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(r.x, r.y + r.h);
-      ctx.lineTo(r.x + r.w * 0.18, r.y + r.h * 0.2);
-      ctx.lineTo(r.x + r.w * 0.55, r.y);
-      ctx.lineTo(r.x + r.w, r.y + r.h * 0.35);
-      ctx.lineTo(r.x + r.w * 0.85, r.y + r.h);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,120,40,.25)";
-      ctx.lineWidth = 3;
-      ctx.stroke();
+      ctx.fill(path);
+
+      ctx.save();
+      ctx.clip(path);
+      // angular facets
+      for (let i = 0; i < 5; i++) {
+        const s1 = GameEngine.hash(r.x + i * 21, r.y + i * 13);
+        const s2 = GameEngine.hash(r.y + i * 17, r.x + i * 7);
+        ctx.fillStyle = i % 2 ? `rgba(255,255,255,${0.05 + s1 * 0.08})` : `rgba(0,0,0,${0.08 + s2 * 0.14})`;
+        ctx.beginPath();
+        ctx.moveTo(r.x + s1 * r.w, r.y + s2 * r.h);
+        ctx.lineTo(r.x + (s2 + 0.3) * r.w, r.y + s1 * r.h * 0.6);
+        ctx.lineTo(r.x + s1 * r.w * 1.2, r.y + r.h);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // mineral speckle
+      for (let i = 0; i < 60; i++) {
+        const s1 = GameEngine.hash(r.x + i * 3.3, r.y + i * 5.9);
+        const s2 = GameEngine.hash(r.y + i * 2.7, r.x + i * 8.1);
+        ctx.fillStyle = s1 > 0.7 ? pal.speck : "rgba(0,0,0,.22)";
+        ctx.fillRect(r.x + s1 * r.w, r.y + s2 * r.h, 1.5 + s1 * 2, 1.5 + s2 * 2);
+      }
+      // cracks
+      ctx.strokeStyle = "rgba(0,0,0,.35)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const s1 = GameEngine.hash(r.x + i * 31, r.y + i * 19);
+        ctx.beginPath();
+        ctx.moveTo(r.x + s1 * r.w, r.y);
+        ctx.lineTo(r.x + (s1 * 0.6 + 0.2) * r.w, cy);
+        ctx.lineTo(r.x + (s1 * 0.9 + 0.05) * r.w, r.y + r.h);
+        ctx.stroke();
+      }
+      // top-light highlight
+      const hl = ctx.createLinearGradient(r.x, r.y, r.x, cy);
+      hl.addColorStop(0, "rgba(255,255,255,.22)");
+      hl.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = hl;
+      ctx.fillRect(r.x, r.y, r.w, r.h * 0.6);
+      ctx.restore();
+
+      // rim light from the world's light source
+      ctx.strokeStyle = ice ? "rgba(190,235,255,.5)" : "rgba(255,140,60,.35)";
+      ctx.lineWidth = 2.5;
+      ctx.stroke(path);
       ctx.restore();
     }
   }
@@ -1345,7 +1602,17 @@ export class GameEngine {
   private drawEnemies(ctx: CanvasRenderingContext2D) {
     const sorted = [...this.enemies].sort((a, b) => a.y - b.y);
     for (const e of sorted) {
-      this.drawSprite(ctx, e.sprite, e.x, e.y, e.z, e.size, e.facing, e.hitFlash);
+      const sheetReady = !!e.runSheet && e.runSheet.complete && e.runSheet.naturalWidth > 0;
+      const bob = Math.abs(Math.sin(e.runPhase * Math.PI * 2)) * (e.flying ? 6 : e.size * 0.03);
+      if (sheetReady) {
+        const index = Math.floor(e.runPhase * e.runFrames) % e.runFrames;
+        this.drawSprite(ctx, e.runSheet, e.x, e.y, e.z + bob, e.size, e.facing, e.hitFlash, {
+          index,
+          count: e.runFrames,
+        });
+      } else {
+        this.drawSprite(ctx, e.sprite, e.x, e.y, e.z + bob, e.size, e.facing, e.hitFlash);
+      }
       // health bar
       const w = Math.max(60, e.size * 0.6);
       const bx = e.x - w / 2;

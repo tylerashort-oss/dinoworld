@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { defaultSave, hasSave, loadSave, persistSave, type SaveData } from "@/game/save";
 import { GameScreen } from "@/components/game/GameScreen";
-import { CharacterSelect, Collection, DinoCamp, MainMenu, WorldMap } from "@/components/game/Menus";
+import { CharacterSelect, Collection, DinoCamp, MainMenu, SettingsScreen, WorldMap } from "@/components/game/Menus";
 import { initAudio, setSoundEnabled } from "@/game/audio";
 
 const TITLE = "Dino Quest — Volcanic Lands";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
   ssr: false,
 });
 
-type Screen = "menu" | "select" | "map" | "camp" | "collection" | "play";
+type Screen = "menu" | "select" | "map" | "camp" | "collection" | "settings" | "play";
 
 function Index() {
   const [save, setSaveState] = useState<SaveData>(() => defaultSave());
@@ -95,13 +95,20 @@ function Index() {
       {screen === "map" && (
         <WorldMap
           save={save}
-          onPlay={() => {
+          setSave={setSave}
+          onPlay={(worldId) => {
             initAudio();
-            setSave((s) => ({ ...s, started: true }));
+            setSave((s) => ({
+              ...s,
+              started: true,
+              world: worldId,
+              areaIndex: s.world === worldId ? s.areaIndex : (s.progress?.[String(worldId)] ?? 0),
+            }));
             setScreen("play");
           }}
           onCamp={() => setScreen("camp")}
           onCollection={() => setScreen("collection")}
+          onSettings={() => setScreen("settings")}
           onMenu={() => setScreen("menu")}
         />
       )}
@@ -111,6 +118,8 @@ function Index() {
       )}
 
       {screen === "collection" && <Collection save={save} onBack={() => setScreen("map")} />}
+
+      {screen === "settings" && <SettingsScreen save={save} setSave={setSave} onBack={() => setScreen("map")} />}
 
       {screen === "play" && <GameScreen save={save} setSave={setSave} onQuit={(t) => setScreen(t)} />}
 

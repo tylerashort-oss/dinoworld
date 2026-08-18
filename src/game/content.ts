@@ -6,6 +6,18 @@ import pterodactylImg from "@/assets/pterodactyl.png";
 import miniRaptorImg from "@/assets/mini-fire-raptor.png";
 import utahraptorImg from "@/assets/fire-utahraptor.png";
 import firesaurasImg from "@/assets/firesauras.png";
+import pterodactylRunImg from "@/assets/pterodactyl-run.png";
+import miniRaptorRunImg from "@/assets/mini-fire-raptor-run.png";
+import utahraptorRunImg from "@/assets/fire-utahraptor-run.png";
+import firesaurasRunImg from "@/assets/firesauras-run.png";
+import frostPterodactylImg from "@/assets/frost-pterodactyl.png";
+import miniFrostRaptorImg from "@/assets/mini-frost-raptor.png";
+import frozenUtahraptorImg from "@/assets/frozen-utahraptor.png";
+import glacierusImg from "@/assets/glacierus.png";
+import frostPterodactylRunImg from "@/assets/frost-pterodactyl-run.png";
+import miniFrostRaptorRunImg from "@/assets/mini-frost-raptor-run.png";
+import frozenUtahraptorRunImg from "@/assets/frozen-utahraptor-run.png";
+import glacierusRunImg from "@/assets/glacierus-run.png";
 
 export const SPRITES = {
   rocket_boy: rocketBoyImg,
@@ -14,11 +26,23 @@ export const SPRITES = {
   mini_fire_raptor: miniRaptorImg,
   fire_utahraptor: utahraptorImg,
   firesauras: firesaurasImg,
+  frost_pterodactyl: frostPterodactylImg,
+  mini_frost_raptor: miniFrostRaptorImg,
+  frozen_utahraptor: frozenUtahraptorImg,
+  glacierus: glacierusImg,
 } as const;
 
 export const RUN_SHEETS: Record<string, { src: string; frames: number }> = {
   rocket_boy: { src: rocketBoyRunImg, frames: 4 },
   pink_explorer: { src: pinkExplorerRunImg, frames: 4 },
+  pterodactyl: { src: pterodactylRunImg, frames: 4 },
+  mini_fire_raptor: { src: miniRaptorRunImg, frames: 4 },
+  fire_utahraptor: { src: utahraptorRunImg, frames: 4 },
+  firesauras: { src: firesaurasRunImg, frames: 4 },
+  frost_pterodactyl: { src: frostPterodactylRunImg, frames: 4 },
+  mini_frost_raptor: { src: miniFrostRaptorRunImg, frames: 4 },
+  frozen_utahraptor: { src: frozenUtahraptorRunImg, frames: 4 },
+  glacierus: { src: glacierusRunImg, frames: 4 },
 };
 
 export type Rarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "MYTHIC";
@@ -119,6 +143,28 @@ export const WEAPONS: Record<string, WeaponDef> = {
     rarity: "LEGENDARY",
     description: "Forged from bones + volcano fire. Wide, fast, blazing.",
   },
+  frost_bone_axe: {
+    id: "frost_bone_axe",
+    name: "Frost Bone Axe",
+    damage: 28,
+    range: 118,
+    arc: 1.4,
+    cooldown: 0.42,
+    color: "#8fd8ff",
+    rarity: "EPIC",
+    description: "Bone and blue glacier stone. Chilling heavy swings.",
+  },
+  ice_claw: {
+    id: "ice_claw",
+    name: "Legendary Ice Claw",
+    damage: 44,
+    range: 138,
+    arc: 1.8,
+    cooldown: 0.32,
+    color: "#5ec8ff",
+    rarity: "LEGENDARY",
+    description: "Bones + eternal ice. The prize of the Ice World.",
+  },
 };
 
 export const PETS: Record<string, PetDef> = {
@@ -137,6 +183,22 @@ export const PETS: Record<string, PetDef> = {
     damage: 30,
     cooldown: 2.6,
     description: "A huge ally raptor that shreds anything nearby.",
+  },
+  mini_frost_raptor: {
+    id: "mini_frost_raptor",
+    name: "Mini Frost Raptor",
+    art: miniFrostRaptorImg,
+    damage: 22,
+    cooldown: 2.1,
+    description: "Darts at enemies in a spray of snow.",
+  },
+  frozen_utahraptor: {
+    id: "frozen_utahraptor",
+    name: "Frozen Utahraptor",
+    art: frozenUtahraptorImg,
+    damage: 38,
+    cooldown: 2.5,
+    description: "Icy claws that freeze anything they touch.",
   },
 };
 
@@ -220,6 +282,62 @@ export const CARDS: Record<string, CardDef> = {
     rarity: "MYTHIC",
     art: firesaurasImg,
     description: "The volcano king himself. Ultimate World 1 prize.",
+  },
+  card_frost_bone_axe: {
+    id: "card_frost_bone_axe",
+    name: "Frost Bone Axe",
+    type: "WEAPON",
+    rarity: "EPIC",
+    art: "",
+    description: "Found deep in the Frozen Treasure Vault.",
+  },
+  card_ice_claw: {
+    id: "card_ice_claw",
+    name: "Legendary Ice Claw",
+    type: "WEAPON",
+    rarity: "LEGENDARY",
+    art: "",
+    description: "Bones + eternal ice. The pride of World 2.",
+  },
+  card_frost_pterodactyl: {
+    id: "card_frost_pterodactyl",
+    name: "Frost Pterodactyl",
+    type: "PET",
+    rarity: "RARE",
+    art: frostPterodactylImg,
+    description: "Hidden glacier-cave treasure. Wings of pure frost.",
+  },
+  card_baby_frost_raptor: {
+    id: "card_baby_frost_raptor",
+    name: "Baby Frost Raptor",
+    type: "PET",
+    rarity: "COMMON",
+    art: miniFrostRaptorImg,
+    description: "Hatched in a snowdrift. Very cold, very cross.",
+  },
+  card_mini_frost_raptor: {
+    id: "card_mini_frost_raptor",
+    name: "Mini Frost Raptor",
+    type: "PET",
+    rarity: "RARE",
+    art: miniFrostRaptorImg,
+    description: "Small, fast and freezing to the touch.",
+  },
+  card_frozen_utahraptor: {
+    id: "card_frozen_utahraptor",
+    name: "Frozen Utahraptor",
+    type: "PET",
+    rarity: "EPIC",
+    art: frozenUtahraptorImg,
+    description: "Ice-crested hunter of the glacier caves.",
+  },
+  card_glacierus: {
+    id: "card_glacierus",
+    name: "Glacierus",
+    type: "PET",
+    rarity: "MYTHIC",
+    art: glacierusImg,
+    description: "The ice titan. Ultimate World 2 prize.",
   },
 };
 
