@@ -166,7 +166,10 @@ export class GameEngine {
 
   private area!: AreaDef;
   private areaIndex: number;
+  private worldId: number;
+  private areas: AreaDef[];
   private opts: EngineOpts;
+  private keybinds: Keybinds;
 
   private images: Record<string, HTMLImageElement | undefined> = {};
 
@@ -228,6 +231,9 @@ export class GameEngine {
     const c = this.canvas.getContext("2d");
     if (!c) throw new Error("Canvas 2D unavailable");
     this.ctx = c;
+    this.worldId = opts.world;
+    this.areas = getAreas(this.worldId);
+    this.keybinds = opts.keybinds ?? defaultKeybinds();
     this.areaIndex = opts.areaIndex;
     this.weaponId = opts.weaponId;
     this.petId = opts.petId;
@@ -283,13 +289,28 @@ export class GameEngine {
     if (!p) this.last = performance.now();
   }
 
+  setKeybinds(kb: Keybinds) {
+    this.keybinds = kb;
+  }
+
+  /** Switch the engine to another world and load its first area. */
+  loadWorld(worldId: number, areaIndex = 0) {
+    this.worldId = worldId;
+    this.areas = getAreas(worldId);
+    this.loadArea(areaIndex);
+  }
+
+  getWorldId() {
+    return this.worldId;
+  }
+
   setInput(v: Vec) {
     this.input = v;
   }
 
   loadArea(index: number) {
-    this.areaIndex = clamp(index, 0, AREAS.length - 1);
-    const area = AREAS[this.areaIndex] as AreaDef;
+    this.areaIndex = clamp(index, 0, this.areas.length - 1);
+    const area = this.areas[this.areaIndex] as AreaDef;
     this.area = area;
     this.px = area.spawn.x;
     this.py = area.spawn.y;
@@ -312,7 +333,7 @@ export class GameEngine {
     this.exitOpen = area.waves.length === 0 && !area.chest;
     this.chestOpen = false;
     this.caveFound = !!this.opts.foundCaves[area.id];
-    if (area.id === "treasure_room" && this.opts.openedChest) {
+    if (area.chest && this.opts.openedChest && area.id === "treasure_room") {
       this.chestOpen = true;
       this.exitOpen = true;
     }
