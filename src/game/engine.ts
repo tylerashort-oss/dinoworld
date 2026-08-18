@@ -100,7 +100,7 @@ interface Projectile {
   dmg: number;
   life: number;
   fromPlayer: boolean;
-  ice: boolean;
+  theme: Theme;
 }
 
 interface Particle {
@@ -141,6 +141,8 @@ interface Eruption {
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 const dist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, ay - by);
 
+export type Theme = "fire" | "ice" | "poison";
+
 const ENEMY_STATS: Record<
   EnemyType,
   {
@@ -166,6 +168,11 @@ const ENEMY_STATS: Record<
   mini_frost_raptor: { hp: 460, speed: 170, radius: 44, size: 165, contact: 16, boss: true, name: "MINI FROST RAPTOR", sprite: "mini_frost_raptor", bones: 35 },
   frozen_utahraptor: { hp: 820, speed: 195, radius: 55, size: 215, contact: 20, boss: true, name: "FROZEN UTAHRAPTOR", sprite: "frozen_utahraptor", bones: 55 },
   glacierus: { hp: 2100, speed: 125, radius: 95, size: 380, contact: 26, boss: true, name: "GLACIERUS", sprite: "glacierus", bones: 140 },
+  vine_pterodactyl: { hp: 95, speed: 112, radius: 34, size: 110, contact: 12, boss: false, name: "Vine Pterodactyl", sprite: "vine_pterodactyl", bones: 8, flying: true },
+  sporeling: { hp: 120, speed: 142, radius: 28, size: 92, contact: 14, boss: false, name: "Spore Hatchling", sprite: "mini_toxic_raptor", bones: 9 },
+  mini_toxic_raptor: { hp: 620, speed: 178, radius: 44, size: 165, contact: 18, boss: true, name: "MINI TOXIC RAPTOR", sprite: "mini_toxic_raptor", bones: 45 },
+  toxic_utahraptor: { hp: 1100, speed: 200, radius: 55, size: 215, contact: 22, boss: true, name: "TOXIC UTAHRAPTOR", sprite: "toxic_utahraptor", bones: 70 },
+  venomus: { hp: 2900, speed: 132, radius: 95, size: 380, contact: 30, boss: true, name: "VENOMUS", sprite: "venomus", bones: 180 },
 };
 
 export class GameEngine {
