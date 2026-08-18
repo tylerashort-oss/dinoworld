@@ -588,7 +588,7 @@ export class GameEngine {
         vy: (Math.random() - 0.5) * 220,
         life: 0.35,
         maxLife: 0.35,
-        color: i % 2 ? "#ffd166" : "#ff5b2e",
+        color: this.isIce ? (i % 2 ? "#d8f4ff" : "#57bdf5") : i % 2 ? "#ffd166" : "#ff5b2e",
         size: 5 + Math.random() * 4,
       });
     }
@@ -605,7 +605,17 @@ export class GameEngine {
         vy: (Math.random() - 0.5) * 320,
         life: 0.7,
         maxLife: 0.7,
-        color: i % 3 === 0 ? "#ffffff" : i % 3 === 1 ? "#ff9e2c" : "#ff3d2e",
+        color: this.isIce
+          ? i % 3 === 0
+            ? "#ffffff"
+            : i % 3 === 1
+              ? "#7fd7ff"
+              : "#2f8ed6"
+          : i % 3 === 0
+            ? "#ffffff"
+            : i % 3 === 1
+              ? "#ff9e2c"
+              : "#ff3d2e",
         size: 6 + Math.random() * 6,
       });
     }
