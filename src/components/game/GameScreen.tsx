@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { GameEngine, type GameEvent, type HudState } from "@/game/engine";
 import { getAreas, getWorld } from "@/game/worlds";
 import { CARDS, getCard, getWeapon, type CardDef } from "@/game/content";
@@ -348,6 +348,10 @@ export function GameScreen({
   const weapon = getWeapon(save.equippedWeapon);
   const checkpointArea = areas[save.checkpoints?.[worldKey] ?? 0];
 
+  const onStick = useCallback((v: { x: number; y: number }) => {
+    engineRef.current?.setInput(v);
+  }, []);
+
   return (
     <div className="relative h-full w-full overflow-hidden bg-black select-none">
       <canvas ref={canvasRef} className="block h-full w-full touch-none" />
@@ -401,14 +405,19 @@ export function GameScreen({
 
       {/* ---------- CONTROLS ---------- */}
       <div className="absolute bottom-2 left-2">
-        <Joystick
-          size={save.joystickSize ?? 210}
-          onChange={(v) => engineRef.current?.setInput(v)}
-        />
+        <Joystick size={save.joystickSize ?? 210} onChange={onStick} />
       </div>
 
       <div className="absolute bottom-4 right-4 flex items-end gap-3">
         <div className="flex flex-col gap-3">
+          {hud?.hasDash && (
+            <ActionButton
+              label="💨 DASH"
+              ready={hud?.dashReady ?? 1}
+              className="h-[76px] w-[76px] border-pink-400/70 bg-pink-500/25 text-xs"
+              onPress={() => engineRef.current?.dash()}
+            />
+          )}
           <ActionButton
             label="⬆ JUMP"
             className="h-[76px] w-[76px] border-sky-400/70 bg-sky-500/25 text-sm"
