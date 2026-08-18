@@ -1217,24 +1217,127 @@ export class GameEngine {
     }
   }
 
+  /** Deterministic pseudo-random so pool/rock detail never flickers. */
+  private static hash(a: number, b: number) {
+    const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  }
+
   private drawLava(ctx: CanvasRenderingContext2D) {
+    const ice = this.isIce;
     for (const r of this.area.lava) {
-      const pulse = 0.5 + 0.5 * Math.sin(this.time * 2 + r.x * 0.01);
+      const t = this.time;
       ctx.save();
-      ctx.shadowColor = "rgba(255,90,10,0.9)";
-      ctx.shadowBlur = 30 + pulse * 20;
-      const lg = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
-      lg.addColorStop(0, "#ff6a00");
-      lg.addColorStop(0.5, `rgba(255,${170 + pulse * 50},40,1)`);
-      lg.addColorStop(1, "#e03b00");
-      ctx.fillStyle = lg;
       ctx.beginPath();
-      const rad = 26;
-      ctx.roundRect(r.x, r.y, r.w, r.h, rad);
-      ctx.fill();
+      ctx.roundRect(r.x, r.y, r.w, r.h, 26);
+      ctx.clip();
+
+      // molten base
+      const lg = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
+      if (ice) {
+        lg.addColorStop(0, "#1d5c8f");
+        lg.addColorStop(0.5, "#2c86c4");
+        lg.addColorStop(1, "#123f66");
+      } else {
+        lg.addColorStop(0, "#8c1c00");
+        lg.addColorStop(0.5, "#d63b00");
+        lg.addColorStop(1, "#6d1400");
+      }
+      ctx.fillStyle = lg;
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+
+      // flowing hot veins between crust plates
+      const cols = Math.max(2, Math.round(r.w / 58));
+      const rows = Math.max(2, Math.round(r.h / 58));
+      for (let cx = 0; cx < cols; cx++) {
+        for (let cy = 0; cy < rows; cy++) {
+          const seed = GameEngine.hash(r.x + cx * 13, r.y + cy * 29);
+          const px = r.x + ((cx + 0.5) / cols) * r.w;
+          const py = r.y + ((cy + 0.5) / rows) * r.h;
+          const drift = Math.sin(t * 0.6 + seed * 8) * 10;
+          const rad = (Math.min(r.w / cols, r.h / rows) * 0.72) * (0.75 + seed * 0.4);
+          const heat = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * 1.4 + seed * 12));
+          const g = ctx.createRadialGradient(px + drift, py, 2, px + drift, py, rad);
+          if (ice) {
+            g.addColorStop(0, `rgba(190,240,255,${0.55 * heat})`);
+            g.addColorStop(1, "rgba(20,70,120,0)");
+          } else {
+            g.addColorStop(0, `rgba(255,240,170,${0.85 * heat})`);
+            g.addColorStop(0.45, `rgba(255,140,20,${0.6 * heat})`);
+            g.addColorStop(1, "rgba(180,40,0,0)");
+          }
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.ellipse(px + drift, py, rad, rad * 0.78, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // dark floating crust plates
+      ctx.globalAlpha = ice ? 0.45 : 0.55;
+      for (let i = 0; i < Math.max(3, Math.round((r.w * r.h) / 26000)); i++) {
+        const s1 = GameEngine.hash(r.x + i * 7, r.y + i * 3);
+        const s2 = GameEngine.hash(r.y + i * 11, r.x + i * 5);
+        const cxp = r.x + s1 * r.w + Math.sin(t * 0.35 + i) * 9;
+        const cyp = r.y + s2 * r.h + Math.cos(t * 0.3 + i * 1.7) * 7;
+        const w = 22 + s1 * 40;
+        const h = 14 + s2 * 26;
+        ctx.fillStyle = ice ? "#cfe9f8" : "#2a1710";
+        ctx.beginPath();
+        ctx.ellipse(cxp, cyp, w, h, s1 * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // boiling bubbles — rise, swell and pop on a loop
+      const bubbles = Math.max(4, Math.round((r.w * r.h) / 12000));
+      for (let i = 0; i < bubbles; i++) {
+        const s1 = GameEngine.hash(r.x * 0.5 + i * 17, r.y * 0.5 + i * 23);
+        const s2 = GameEngine.hash(r.y * 0.7 + i * 31, r.x * 0.3 + i * 19);
+        const period = 1.4 + s2 * 2.2;
+        const phase = ((t + s1 * period) % period) / period;
+        const bx = r.x + 12 + s1 * (r.w - 24);
+        const by = r.y + 12 + ((s2 * (r.h - 24) - phase * 34 + r.h) % (r.h - 24));
+        const swell = Math.sin(phase * Math.PI);
+        const br = (5 + s1 * 9) * swell;
+        if (br <= 0.4) continue;
+        ctx.beginPath();
+        ctx.fillStyle = ice ? `rgba(225,248,255,${0.5 * swell})` : `rgba(255,226,140,${0.75 * swell})`;
+        ctx.arc(bx, by, br, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.strokeStyle = ice ? `rgba(255,255,255,${0.5 * swell})` : `rgba(255,120,20,${0.6 * swell})`;
+        ctx.lineWidth = 2;
+        ctx.arc(bx, by, br * 1.25, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // steam wisps drifting off the surface
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = ice ? "#dff3ff" : "#ffb987";
+      for (let i = 0; i < 5; i++) {
+        const s1 = GameEngine.hash(r.x + i * 41, r.y + i * 53);
+        const sx = r.x + s1 * r.w + Math.sin(t * 0.8 + i * 2) * 18;
+        const sy = r.y + r.h - ((t * 22 + s1 * 400) % (r.h + 40));
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, 26 + s1 * 20, 12 + s1 * 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
       ctx.restore();
-      ctx.strokeStyle = "rgba(40,20,15,.9)";
-      ctx.lineWidth = 6;
+
+      // glowing rim + cooled rock edge
+      ctx.save();
+      ctx.shadowColor = ice ? "rgba(120,200,255,0.85)" : "rgba(255,90,10,0.9)";
+      ctx.shadowBlur = 26 + 14 * (0.5 + 0.5 * Math.sin(t * 2 + r.x * 0.01));
+      ctx.strokeStyle = ice ? "rgba(180,230,255,.55)" : "rgba(255,150,40,.55)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4, 24);
+      ctx.stroke();
+      ctx.restore();
+      ctx.strokeStyle = ice ? "rgba(210,235,250,.85)" : "rgba(38,22,16,.92)";
+      ctx.lineWidth = 7;
       ctx.beginPath();
       ctx.roundRect(r.x, r.y, r.w, r.h, 26);
       ctx.stroke();
@@ -1272,27 +1375,88 @@ export class GameEngine {
   }
 
   private drawRocks(ctx: CanvasRenderingContext2D) {
+    const ice = this.isIce;
+    // Basalt grey-blue boulders (ice world: pale glacier stone)
+    const pal = ice
+      ? { top: "#c6d9e6", mid: "#8fa9bd", low: "#5c748a", dark: "#3a4d5f", speck: "rgba(255,255,255,.5)" }
+      : { top: "#8b93a1", mid: "#5f6774", low: "#3c424d", dark: "#22262e", speck: "rgba(210,220,235,.35)" };
     for (const r of this.area.rocks) {
+      const cx = r.x + r.w / 2;
+      const cy = r.y + r.h / 2;
       ctx.save();
-      ctx.fillStyle = "rgba(0,0,0,.45)";
+
+      // contact shadow
+      ctx.fillStyle = "rgba(0,0,0,.42)";
       ctx.beginPath();
-      ctx.ellipse(r.x + r.w / 2, r.y + r.h * 0.95, r.w * 0.6, r.h * 0.25, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, r.y + r.h * 0.97, r.w * 0.58, r.h * 0.2, 0, 0, Math.PI * 2);
+      ctx.filter = "blur(1px)";
       ctx.fill();
-      const g = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
-      g.addColorStop(0, "#4a4046");
-      g.addColorStop(1, "#191418");
+      ctx.filter = "none";
+
+      // irregular boulder silhouette
+      const pts: [number, number][] = [];
+      const n = 11;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const wob = 0.78 + GameEngine.hash(r.x + i * 9.1, r.y + i * 4.3) * 0.34;
+        pts.push([cx + Math.cos(a) * r.w * 0.5 * wob, cy + Math.sin(a) * r.h * 0.5 * wob]);
+      }
+      const path = new Path2D();
+      path.moveTo(pts[0]![0], pts[0]![1]);
+      for (let i = 1; i < pts.length; i++) path.lineTo(pts[i]![0], pts[i]![1]);
+      path.closePath();
+
+      const g = ctx.createLinearGradient(r.x, r.y, r.x + r.w * 0.4, r.y + r.h);
+      g.addColorStop(0, pal.top);
+      g.addColorStop(0.45, pal.mid);
+      g.addColorStop(1, pal.dark);
       ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(r.x, r.y + r.h);
-      ctx.lineTo(r.x + r.w * 0.18, r.y + r.h * 0.2);
-      ctx.lineTo(r.x + r.w * 0.55, r.y);
-      ctx.lineTo(r.x + r.w, r.y + r.h * 0.35);
-      ctx.lineTo(r.x + r.w * 0.85, r.y + r.h);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,120,40,.25)";
-      ctx.lineWidth = 3;
-      ctx.stroke();
+      ctx.fill(path);
+
+      ctx.save();
+      ctx.clip(path);
+      // angular facets
+      for (let i = 0; i < 5; i++) {
+        const s1 = GameEngine.hash(r.x + i * 21, r.y + i * 13);
+        const s2 = GameEngine.hash(r.y + i * 17, r.x + i * 7);
+        ctx.fillStyle = i % 2 ? `rgba(255,255,255,${0.05 + s1 * 0.08})` : `rgba(0,0,0,${0.08 + s2 * 0.14})`;
+        ctx.beginPath();
+        ctx.moveTo(r.x + s1 * r.w, r.y + s2 * r.h);
+        ctx.lineTo(r.x + (s2 + 0.3) * r.w, r.y + s1 * r.h * 0.6);
+        ctx.lineTo(r.x + s1 * r.w * 1.2, r.y + r.h);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // mineral speckle
+      for (let i = 0; i < 60; i++) {
+        const s1 = GameEngine.hash(r.x + i * 3.3, r.y + i * 5.9);
+        const s2 = GameEngine.hash(r.y + i * 2.7, r.x + i * 8.1);
+        ctx.fillStyle = s1 > 0.7 ? pal.speck : "rgba(0,0,0,.22)";
+        ctx.fillRect(r.x + s1 * r.w, r.y + s2 * r.h, 1.5 + s1 * 2, 1.5 + s2 * 2);
+      }
+      // cracks
+      ctx.strokeStyle = "rgba(0,0,0,.35)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const s1 = GameEngine.hash(r.x + i * 31, r.y + i * 19);
+        ctx.beginPath();
+        ctx.moveTo(r.x + s1 * r.w, r.y);
+        ctx.lineTo(r.x + (s1 * 0.6 + 0.2) * r.w, cy);
+        ctx.lineTo(r.x + (s1 * 0.9 + 0.05) * r.w, r.y + r.h);
+        ctx.stroke();
+      }
+      // top-light highlight
+      const hl = ctx.createLinearGradient(r.x, r.y, r.x, cy);
+      hl.addColorStop(0, "rgba(255,255,255,.22)");
+      hl.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = hl;
+      ctx.fillRect(r.x, r.y, r.w, r.h * 0.6);
+      ctx.restore();
+
+      // rim light from the world's light source
+      ctx.strokeStyle = ice ? "rgba(190,235,255,.5)" : "rgba(255,140,60,.35)";
+      ctx.lineWidth = 2.5;
+      ctx.stroke(path);
       ctx.restore();
     }
   }
