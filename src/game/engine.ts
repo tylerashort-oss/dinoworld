@@ -1,5 +1,5 @@
 import { AREAS, type AreaDef, type EnemyType, type Rect } from "./areas";
-import { PETS, SPRITES, WEAPONS, getCharacter, getPet, getWeapon } from "./content";
+import { PETS, RUN_SHEETS, SPRITES, WEAPONS, getCharacter, getPet, getWeapon } from "./content";
 import { playSfx } from "./audio";
 
 export interface HudState {
@@ -175,6 +175,9 @@ export class GameEngine {
   private dead = false;
   private speedMul = 1;
   private lootBonus = 0;
+  private runPhase = 0;
+  private runSpeed = 0;
+  private runFrames = 1;
 
   private weaponId: string;
   private petId: string | null;
@@ -231,11 +234,24 @@ export class GameEngine {
       img.src = SPRITES[k];
       this.images[k] = img;
     });
+    Object.entries(RUN_SHEETS).forEach(([k, sheet]) => {
+      const img = new Image();
+      img.src = sheet.src;
+      this.images[`${k}__run`] = img;
+    });
+    this.setRunSheet(characterId);
     this.images["player"] = this.images[characterId] ?? this.images["rocket_boy"];
+  }
+
+  private setRunSheet(characterId: string) {
+    const sheet = RUN_SHEETS[characterId] ?? RUN_SHEETS["rocket_boy"];
+    this.images["playerRun"] = this.images[`${characterId}__run`] ?? this.images["rocket_boy__run"];
+    this.runFrames = sheet?.frames ?? 4;
   }
 
   setCharacterSprite(characterId: string) {
     this.images["player"] = this.images[characterId] ?? this.images["rocket_boy"];
+    this.setRunSheet(characterId);
     const ch = getCharacter(characterId);
     this.speedMul = ch.speed;
     this.lootBonus = ch.lootBonus;
@@ -684,11 +700,34 @@ export class GameEngine {
     const base = 250 * this.speedMul * (inLava ? 0.6 : 1);
     const nx = this.px + ix * base * dt;
     const ny = this.py + iy * base * dt;
+    const prevX = this.px;
+    const prevY = this.py;
     this.px = clamp(nx, 30, area.w - 30);
     this.py = clamp(ny, 30, area.h - 30);
     if (this.pz <= 0) this.resolveRocks();
     this.px = clamp(this.px, 30, area.w - 30);
     this.py = clamp(this.py, 30, area.h - 30);
+
+    // ---- run cycle driven by actual distance moved
+    const moved = Math.hypot(this.px - prevX, this.py - prevY);
+    this.runSpeed = dt > 0 ? moved / dt : 0;
+    if (this.pz <= 0 && moved > 0.4) {
+      const prevPhase = this.runPhase;
+      this.runPhase += moved / 55;
+      // dust puff each time a foot plants (whole-frame boundary)
+      if (Math.floor(prevPhase * this.runFrames) !== Math.floor(this.runPhase * this.runFrames)) {
+        this.particles.push({
+          x: this.px - this.facing * 12 + (Math.random() - 0.5) * 10,
+          y: this.py + 12,
+          vx: -this.facing * (30 + Math.random() * 40),
+          vy: -30 - Math.random() * 30,
+          life: 0.35,
+          maxLife: 0.35,
+          color: "rgba(255,200,150,.55)",
+          size: 5 + Math.random() * 4,
+        });
+      }
+    }
 
     if (mag > 0.05) {
       this.aimX = ix;
@@ -1268,6 +1307,7 @@ export class GameEngine {
     size: number,
     facing: number,
     flash = 0,
+    frame?: { index: number; count: number },
   ) {
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,.45)";
@@ -1285,11 +1325,14 @@ export class GameEngine {
       return;
     }
     const h = size;
-    const w = (img.naturalWidth / img.naturalHeight) * size;
+    const srcW = frame ? img.naturalWidth / frame.count : img.naturalWidth;
+    const srcX = frame ? srcW * (frame.index % frame.count) : 0;
+    const w = (srcW / img.naturalHeight) * size;
     ctx.save();
     ctx.translate(x, y - z);
     ctx.scale(facing >= 0 ? 1 : -1, 1);
-    ctx.drawImage(img, -w / 2, -h * 0.86, w, h);
+    if (frame) ctx.drawImage(img, srcX, 0, srcW, img.naturalHeight, -w / 2, -h * 0.86, w, h);
+    else ctx.drawImage(img, -w / 2, -h * 0.86, w, h);
     if (flash > 0) {
       ctx.globalCompositeOperation = "source-atop";
       ctx.globalAlpha = Math.min(0.85, flash * 4);
@@ -1330,9 +1373,22 @@ export class GameEngine {
 
   private drawPlayer(ctx: CanvasRenderingContext2D) {
     const flick = this.invuln > 0 && Math.floor(this.time * 20) % 2 === 0;
+    const runSheet = this.images["playerRun"] ?? null;
+    const sheetReady = !!runSheet && runSheet.complete && runSheet.naturalWidth > 0;
+    const running = this.pz <= 0 && this.runSpeed > 30;
+    const airborne = this.pz > 0;
+    const bob = running ? Math.abs(Math.sin(this.runPhase * Math.PI * 2)) * 5 : Math.sin(this.time * 2.4) * 2;
     ctx.save();
     if (flick) ctx.globalAlpha = 0.45;
-    this.drawSprite(ctx, this.images["player"] ?? null, this.px, this.py, this.pz, 118, this.facing);
+    if (sheetReady && (running || airborne)) {
+      const index = airborne ? 2 : Math.floor(this.runPhase * this.runFrames) % this.runFrames;
+      this.drawSprite(ctx, runSheet, this.px, this.py, this.pz + bob, 118, this.facing, 0, {
+        index,
+        count: this.runFrames,
+      });
+    } else {
+      this.drawSprite(ctx, this.images["player"] ?? null, this.px, this.py, this.pz + bob, 118, this.facing);
+    }
     ctx.restore();
 
     if (this.attackAnim > 0) {
