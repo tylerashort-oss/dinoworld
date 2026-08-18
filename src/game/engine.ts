@@ -876,8 +876,31 @@ export class GameEngine {
     if (this.petId) {
       const tx = this.px - this.facing * 62;
       const ty = this.py + 34;
+      const ppx = this.petX;
+      const ppy = this.petY;
       this.petX += (tx - this.petX) * Math.min(1, dt * 4);
       this.petY += (ty - this.petY) * Math.min(1, dt * 4);
+      const pmoved = Math.hypot(this.petX - ppx, this.petY - ppy);
+      if (pmoved > 0.15) {
+        const prev = this.petPhase;
+        this.petPhase += pmoved / 34;
+        if (Math.abs(this.petX - ppx) > 0.2) this.petFacing = this.petX > ppx ? 1 : -1;
+        if (Math.floor(prev * 4) !== Math.floor(this.petPhase * 4)) {
+          this.particles.push({
+            x: this.petX - this.petFacing * 10,
+            y: this.petY + 8,
+            vx: -this.petFacing * (20 + Math.random() * 25),
+            vy: -18 - Math.random() * 20,
+            life: 0.28,
+            maxLife: 0.28,
+            color: this.isIce ? "rgba(220,240,255,.6)" : "rgba(255,200,150,.5)",
+            size: 4 + Math.random() * 3,
+          });
+        }
+      }
+      // pets fight on their own too, so they always help
+      this.petAutoCd -= dt;
+      if (this.petAutoCd <= 0 && this.petCd <= 0) this.petStrike();
     }
 
     // ---- enemies
@@ -990,7 +1013,7 @@ export class GameEngine {
           vy: 0,
           life: 0.25,
           maxLife: 0.25,
-          color: "#ff9d2e",
+          color: p.ice ? "#9fe6ff" : "#ff9d2e",
           size: p.r * 1.2,
         });
       if (!p.fromPlayer && this.pz < 34 && dist(p.x, p.y, this.px, this.py) < p.r + 20) {
@@ -1016,7 +1039,7 @@ export class GameEngine {
     for (const b of this.pickups) {
       if (b.taken) continue;
       b.bob += dt * 4;
-      if (dist(b.x, b.y, this.px, this.py) < 46) {
+      if (dist(b.x, b.y, this.px, this.py) < this.magnet) {
         b.taken = true;
         this.addBones(Math.round(1 + this.lootBonus));
         playSfx("bone");
