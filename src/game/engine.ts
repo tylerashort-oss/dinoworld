@@ -148,6 +148,11 @@ const ENEMY_STATS: Record<
   mini_fire_raptor: { hp: 320, speed: 160, radius: 44, size: 165, contact: 14, boss: true, name: "MINI FIRE RAPTOR", sprite: "mini_fire_raptor", bones: 25 },
   fire_utahraptor: { hp: 620, speed: 185, radius: 55, size: 215, contact: 18, boss: true, name: "FIRE UTAHRAPTOR", sprite: "fire_utahraptor", bones: 40 },
   firesauras: { hp: 1500, speed: 115, radius: 95, size: 380, contact: 22, boss: true, name: "FIRESAURAS", sprite: "firesauras", bones: 100 },
+  frost_pterodactyl: { hp: 70, speed: 105, radius: 34, size: 110, contact: 10, boss: false, name: "Frost Pterodactyl", sprite: "frost_pterodactyl", bones: 6, flying: true },
+  snowling: { hp: 90, speed: 135, radius: 28, size: 92, contact: 12, boss: false, name: "Snow Hatchling", sprite: "mini_frost_raptor", bones: 7 },
+  mini_frost_raptor: { hp: 460, speed: 170, radius: 44, size: 165, contact: 16, boss: true, name: "MINI FROST RAPTOR", sprite: "mini_frost_raptor", bones: 35 },
+  frozen_utahraptor: { hp: 820, speed: 195, radius: 55, size: 215, contact: 20, boss: true, name: "FROZEN UTAHRAPTOR", sprite: "frozen_utahraptor", bones: 55 },
+  glacierus: { hp: 2100, speed: 125, radius: 95, size: 380, contact: 26, boss: true, name: "GLACIERUS", sprite: "glacierus", bones: 140 },
 };
 
 export class GameEngine {
