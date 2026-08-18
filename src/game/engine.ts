@@ -1084,7 +1084,13 @@ export class GameEngine {
 
     // ---- player movement
     const inLava = this.pz < 26 && this.pointInLava(this.px, this.py);
-    const base = 250 * this.speedMul * (inLava ? 0.6 : 1);
+    this.dashCd = Math.max(0, this.dashCd - dt);
+    if (this.dashTime > 0) {
+      this.dashTime = Math.max(0, this.dashTime - dt);
+      ix = this.dashX;
+      iy = this.dashY;
+    }
+    const base = 250 * this.speedMul * (inLava ? 0.6 : 1) * (this.dashTime > 0 ? 3.2 : 1);
     const nx = this.px + ix * base * dt;
     const ny = this.py + iy * base * dt;
     const prevX = this.px;
@@ -1326,7 +1332,8 @@ export class GameEngine {
         }
       }
     }
-    this.projectiles = this.projectiles.filter(
+    compact(
+      this.projectiles,
       (p) => p.life > 0 && p.x > -50 && p.y > -50 && p.x < area.w + 50 && p.y < area.h + 50,
     );
 
@@ -1382,13 +1389,13 @@ export class GameEngine {
         if (er.burst <= 0) er.done = true;
       }
     }
-    this.eruptions = this.eruptions.filter((e) => !e.done);
+    compact(this.eruptions, (e) => !e.done);
 
     // ---- cave discovery
     if (area.cave && !this.caveFound && dist(this.px, this.py, area.cave.x, area.cave.y) < 70) {
       this.caveFound = true;
       playSfx("card");
-      this.opts.onEvent({ type: "caveFound", cardId: area.cave.cardId });
+      this.opts.onEvent({ type: "caveFound", cardId: area.cave.cardId, areaId: area.id });
     }
 
     // ---- chest by touch
@@ -1412,12 +1419,12 @@ export class GameEngine {
       p.vy += 260 * dt;
       p.life -= dt;
     }
-    this.particles = this.particles.filter((p) => p.life > 0);
+    compact(this.particles, (p) => p.life > 0);
     for (const n of this.numbers) {
       n.y -= 45 * dt;
       n.life -= dt;
     }
-    this.numbers = this.numbers.filter((n) => n.life > 0);
+    compact(this.numbers, (n) => n.life > 0);
   }
 
   private shoot(x: number, y: number, ang: number, speed: number, dmg: number) {
