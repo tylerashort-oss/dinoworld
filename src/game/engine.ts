@@ -737,10 +737,10 @@ export class GameEngine {
     // ---- input vector
     let ix = this.input.x;
     let iy = this.input.y;
-    if (this.keys["a"] || this.keys["arrowleft"]) ix -= 1;
-    if (this.keys["d"] || this.keys["arrowright"]) ix += 1;
-    if (this.keys["w"] || this.keys["arrowup"]) iy -= 1;
-    if (this.keys["s"] || this.keys["arrowdown"]) iy += 1;
+    if (this.keys["left"]) ix -= 1;
+    if (this.keys["right"]) ix += 1;
+    if (this.keys["up"]) iy -= 1;
+    if (this.keys["down"]) iy += 1;
     const mag = Math.hypot(ix, iy);
     if (mag > 1) {
       ix /= mag;
@@ -831,18 +831,20 @@ export class GameEngine {
     for (const e of this.enemies) {
       e.hitFlash = Math.max(0, e.hitFlash - dt);
       e.contactCd = Math.max(0, e.contactCd - dt);
+      const eprevX = e.x;
+      const eprevY = e.y;
       const d = dist(e.x, e.y, this.px, this.py);
       const ang = Math.atan2(this.py - e.y, this.px - e.x);
       e.facing = this.px > e.x ? 1 : -1;
 
-      if (e.type === "firesauras" && !e.enraged && e.hp < e.maxHp * 0.5) {
+      if (e.boss && (e.type === "firesauras" || e.type === "glacierus") && !e.enraged && e.hp < e.maxHp * 0.5) {
         e.enraged = true;
-        e.speed = 175;
-        this.banner("FIRESAURAS IS ENRAGED!");
+        e.speed = e.speed * 1.5;
+        this.banner(`${e.name} IS ENRAGED!`);
         playSfx("boss");
       }
 
-      if (e.type === "pterodactyl") {
+      if (e.flying) {
         const want = 240;
         const dir = d > want + 40 ? 1 : d < want - 40 ? -1 : 0;
         e.x += Math.cos(ang) * e.speed * dir * dt;
@@ -852,7 +854,7 @@ export class GameEngine {
           e.shootTimer = 2.2;
           this.shoot(e.x, e.y, ang, 260, 9);
         }
-      } else if (e.type === "firesauras") {
+      } else if (e.type === "firesauras" || e.type === "glacierus") {
         const spd = e.speed * (d > 170 ? 1 : 0);
         e.x += Math.cos(ang) * spd * dt;
         e.y += Math.sin(ang) * spd * dt;
@@ -869,7 +871,7 @@ export class GameEngine {
       } else {
         // chasers: fireling, mini raptor, utahraptor
         let spd = e.speed;
-        if (e.type === "fire_utahraptor") {
+        if (e.type === "fire_utahraptor" || e.type === "frozen_utahraptor") {
           e.dashTimer -= dt;
           if (e.dashTimer <= 0) {
             spd = e.speed * 2.4;
@@ -880,7 +882,7 @@ export class GameEngine {
           e.x += Math.cos(ang) * spd * dt;
           e.y += Math.sin(ang) * spd * dt;
         }
-        if (e.type === "mini_fire_raptor") {
+        if (e.type === "mini_fire_raptor" || e.type === "mini_frost_raptor") {
           e.shootTimer -= dt;
           if (e.shootTimer <= 0) {
             e.shootTimer = 3.6;
@@ -892,8 +894,31 @@ export class GameEngine {
       e.x = clamp(e.x, 40, area.w - 40);
       e.y = clamp(e.y, 40, area.h - 40);
 
+      // ---- leg / wing animation driven by real distance moved
+      if (e.flying) {
+        e.runPhase += dt * 2.4;
+      } else {
+        const emoved = Math.hypot(e.x - eprevX, e.y - eprevY);
+        if (emoved > 0.2) {
+          const prevPhase = e.runPhase;
+          e.runPhase += emoved / (e.size * 0.55);
+          if (Math.floor(prevPhase * e.runFrames) !== Math.floor(e.runPhase * e.runFrames)) {
+            this.particles.push({
+              x: e.x - e.facing * e.size * 0.14,
+              y: e.y + e.size * 0.1,
+              vx: -e.facing * (20 + Math.random() * 30),
+              vy: -20 - Math.random() * 25,
+              life: 0.32,
+              maxLife: 0.32,
+              color: this.isIce ? "rgba(220,240,255,.65)" : "rgba(255,200,150,.5)",
+              size: 4 + Math.random() * 4,
+            });
+          }
+        }
+      }
+
       // contact damage
-      if (d < e.radius + 22 && e.contactCd <= 0 && (e.type !== "pterodactyl" ? true : this.pz < 40)) {
+      if (d < e.radius + 22 && e.contactCd <= 0 && (!e.flying || this.pz < 40)) {
         e.contactCd = 0.9;
         this.hurtPlayer(e.contactDamage);
       }
