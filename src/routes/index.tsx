@@ -96,13 +96,14 @@ function Index() {
         <WorldMap
           save={save}
           setSave={setSave}
-          onPlay={(worldId) => {
+          onPlay={(worldId, areaIndex) => {
             initAudio();
             setSave((s) => ({
               ...s,
               started: true,
               world: worldId,
-              areaIndex: s.world === worldId ? s.areaIndex : (s.progress?.[String(worldId)] ?? 0),
+              areaIndex:
+                areaIndex ?? (s.world === worldId ? s.areaIndex : (s.progress?.[String(worldId)] ?? 0)),
             }));
             setScreen("play");
           }}
@@ -117,7 +118,9 @@ function Index() {
         <DinoCamp save={save} setSave={setSave} onBack={() => setScreen("map")} onCollection={() => setScreen("collection")} />
       )}
 
-      {screen === "collection" && <Collection save={save} onBack={() => setScreen("map")} />}
+      {screen === "collection" && (
+        <Collection save={save} setSave={setSave} onBack={() => setScreen("map")} />
+      )}
 
       {screen === "settings" && <SettingsScreen save={save} setSave={setSave} onBack={() => setScreen("map")} />}
 
