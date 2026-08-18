@@ -207,6 +207,13 @@ export class GameEngine {
   private runPhase = 0;
   private runSpeed = 0;
   private runFrames = 1;
+  private difficulty = 1;
+  private damageMul = 1;
+  private petMul = 1;
+  private petHits = 1;
+  private magnet = 46;
+  private shieldMax = 0;
+  private shield = 0;
 
   private weaponId: string;
   private petId: string | null;
@@ -214,6 +221,9 @@ export class GameEngine {
   // pet
   private petX = 0;
   private petY = 0;
+  private petPhase = 0;
+  private petFacing = 1;
+  private petAutoCd = 2;
 
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
@@ -254,6 +264,14 @@ export class GameEngine {
     const ch = getCharacter(opts.characterId);
     this.speedMul = ch.speed;
     this.lootBonus = ch.lootBonus;
+    this.difficulty = opts.difficulty ?? 1;
+    this.damageMul = opts.damageMul ?? 1;
+    this.petMul = opts.petMul ?? 1;
+    this.petHits = opts.petHits ?? 1;
+    this.magnet = opts.magnet ?? 46;
+    this.shieldMax = opts.shield ?? 0;
+    this.maxHp = 100 + (opts.bonusMaxHp ?? 0);
+    this.hp = this.maxHp;
     this.preload(opts.characterId);
     this.loadArea(this.areaIndex);
     window.addEventListener("keydown", this.onKeyDown);
