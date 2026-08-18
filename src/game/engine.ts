@@ -534,11 +534,6 @@ export class GameEngine {
     this.banner("EXTRA LIFE USED!");
   }
 
-  private petAttackLegacy() {
-    if (this.dead || this.paused || !this.petId || this.petCd > 0) return;
-    this.petStrike();
-  }
-
   /** The pet lunges at the nearest enemy and claws it. */
   private petStrike() {
     if (this.dead || !this.petId) return;
