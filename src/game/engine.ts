@@ -780,7 +780,7 @@ export class GameEngine {
           vy: -30 - Math.random() * 30,
           life: 0.35,
           maxLife: 0.35,
-          color: "rgba(255,200,150,.55)",
+          color: this.isIce ? "rgba(225,245,255,.65)" : "rgba(255,200,150,.55)",
           size: 5 + Math.random() * 4,
         });
       }
@@ -813,7 +813,7 @@ export class GameEngine {
           vy: -60,
           life: 0.4,
           maxLife: 0.4,
-          color: "#ff7b28",
+          color: this.isIce ? "#9fdcff" : "#ff7b28",
           size: 7,
         });
     }
