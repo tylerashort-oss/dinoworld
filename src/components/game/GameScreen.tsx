@@ -264,8 +264,9 @@ export function GameScreen({
           className="h-[124px] w-[124px] border-orange-400 bg-orange-500/30 text-base"
           onPress={() => {
             initAudio();
-            engineRef.current?.attack();
+            engineRef.current?.setAttackHeld(true);
           }}
+          onRelease={() => engineRef.current?.setAttackHeld(false)}
         />
       </div>
 
@@ -383,12 +384,14 @@ function Overlay({ children }: { children: React.ReactNode }) {
 function ActionButton({
   label,
   onPress,
+  onRelease,
   className = "",
   disabled,
   ready = 1,
 }: {
   label: string;
   onPress: () => void;
+  onRelease?: () => void;
   className?: string;
   disabled?: boolean;
   ready?: number;
@@ -398,9 +401,13 @@ function ActionButton({
       disabled={disabled}
       onPointerDown={(e) => {
         e.preventDefault();
+        (e.currentTarget as HTMLButtonElement).setPointerCapture?.(e.pointerId);
         initAudio();
         if (!disabled) onPress();
       }}
+      onPointerUp={() => onRelease?.()}
+      onPointerCancel={() => onRelease?.()}
+      onPointerLeave={() => onRelease?.()}
       className={`relative touch-none rounded-full border-4 font-black text-foreground backdrop-blur-sm transition-transform active:scale-95 disabled:opacity-35 ${className}`}
       style={{ boxShadow: "0 4px 18px rgba(0,0,0,.5)" }}
     >
