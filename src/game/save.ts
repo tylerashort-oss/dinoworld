@@ -1,3 +1,5 @@
+import { defaultKeybinds, normalizeKeybinds, type Keybinds } from "./keybinds";
+
 export interface SaveData {
   version: number;
   started: boolean;
@@ -8,10 +10,21 @@ export interface SaveData {
   pets: string[];
   equippedPet: string | null;
   cards: string[];
+  /** Current world (1 = Volcanic Lands, 2 = Ice World). */
+  world: number;
+  /** Area index inside the current world. */
   areaIndex: number;
+  /** Furthest area reached per world. */
+  progress: Record<string, number>;
+  /** Respawn checkpoint area index per world. */
+  checkpoints: Record<string, number>;
   world1Complete: boolean;
   world2Unlocked: boolean;
+  world2Complete: boolean;
+  world3Unlocked: boolean;
   sound: boolean;
+  keybinds: Keybinds;
+  joystickSize: number;
   flags: Record<string, boolean>;
 }
 
@@ -19,7 +32,7 @@ const KEY = "dinoquest.save.v1";
 
 export function defaultSave(): SaveData {
   return {
-    version: 1,
+    version: 2,
     started: false,
     character: "rocket_boy",
     bones: 0,
@@ -28,10 +41,17 @@ export function defaultSave(): SaveData {
     pets: [],
     equippedPet: null,
     cards: ["card_rocket_boy", "card_pink_explorer", "card_bone_sword"],
+    world: 1,
     areaIndex: 0,
+    progress: { "1": 0, "2": 0 },
+    checkpoints: { "1": 0, "2": 0 },
     world1Complete: false,
     world2Unlocked: false,
+    world2Complete: false,
+    world3Unlocked: false,
     sound: true,
+    keybinds: defaultKeybinds(),
+    joystickSize: 210,
     flags: {},
   };
 }
@@ -41,7 +61,14 @@ export function loadSave(): SaveData {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return defaultSave();
-    return { ...defaultSave(), ...(JSON.parse(raw) as SaveData) };
+    const parsed = JSON.parse(raw) as Partial<SaveData>;
+    const merged = { ...defaultSave(), ...parsed } as SaveData;
+    merged.keybinds = normalizeKeybinds(parsed.keybinds);
+    merged.progress = { "1": 0, "2": 0, ...(parsed.progress ?? {}) };
+    merged.checkpoints = { "1": 0, "2": 0, ...(parsed.checkpoints ?? {}) };
+    if (!merged.world) merged.world = 1;
+    if (!merged.joystickSize) merged.joystickSize = 210;
+    return merged;
   } catch {
     return defaultSave();
   }
