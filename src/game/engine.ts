@@ -1,5 +1,7 @@
-import { AREAS, type AreaDef, type EnemyType, type Rect } from "./areas";
-import { PETS, RUN_SHEETS, SPRITES, WEAPONS, getCharacter, getPet, getWeapon } from "./content";
+import { AREAS, type AreaDef, type EnemyType } from "./areas";
+import { getAreas } from "./worlds";
+import { RUN_SHEETS, SPRITES, getCharacter, getPet, getWeapon } from "./content";
+import { defaultKeybinds, type ActionId, type Keybinds } from "./keybinds";
 import { playSfx } from "./audio";
 
 export interface HudState {
@@ -33,10 +35,12 @@ interface EngineOpts {
   characterId: string;
   weaponId: string;
   petId: string | null;
+  world: number;
   areaIndex: number;
   bones: number;
   openedChest: boolean;
   foundCaves: Record<string, boolean>;
+  keybinds?: Keybinds;
   onHud: (h: HudState) => void;
   onEvent: (e: GameEvent) => void;
 }
@@ -62,6 +66,10 @@ interface Enemy {
   boss: boolean;
   name: string;
   sprite: HTMLImageElement | null;
+  runSheet: HTMLImageElement | null;
+  runFrames: number;
+  runPhase: number;
+  flying: boolean;
   shootTimer: number;
   hitFlash: number;
   contactCd: number;
