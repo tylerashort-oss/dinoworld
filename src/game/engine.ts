@@ -369,22 +369,34 @@ export class GameEngine {
     window.removeEventListener("keyup", this.onKeyUp);
   }
 
-  private onKeyDown = (e: KeyboardEvent) => {
-    this.keys[e.key.toLowerCase()] = true;
-    const k = e.key.toLowerCase();
-    if (k === " ") {
-      e.preventDefault();
-      this.jump();
+  private actionsFor(code: string): ActionId[] {
+    const out: ActionId[] = [];
+    for (const id of Object.keys(this.keybinds) as ActionId[]) {
+      if ((this.keybinds[id] ?? []).includes(code)) out.push(id);
     }
-    if (k === "j") this.attack();
-    if (k === "k") this.petAttack();
-    if (k === "j" || k === "f" || k === "enter") this.attackHeld = true;
+    return out;
+  }
+
+  private onKeyDown = (e: KeyboardEvent) => {
+    if (e.repeat) return;
+    const acts = this.actionsFor(e.code);
+    if (acts.length === 0) return;
+    e.preventDefault();
+    for (const a of acts) {
+      this.keys[a] = true;
+      if (a === "attack") this.setAttackHeld(true);
+      if (a === "pet") this.petAttack();
+      if (a === "jump") this.jump();
+      if (a === "pause") this.opts.onEvent({ type: "pauseRequested" });
+    }
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
-    this.keys[e.key.toLowerCase()] = false;
-    const k = e.key.toLowerCase();
-    if (k === "j" || k === "f" || k === "enter") this.attackHeld = false;
+    const acts = this.actionsFor(e.code);
+    for (const a of acts) {
+      this.keys[a] = false;
+      if (a === "attack") this.setAttackHeld(false);
+    }
   };
 
   banner(text: string) {
