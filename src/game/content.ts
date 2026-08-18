@@ -26,6 +26,30 @@ import vinePterodactylRunImg from "@/assets/vine-pterodactyl-run.png";
 import miniToxicRaptorRunImg from "@/assets/mini-toxic-raptor-run.png";
 import toxicUtahraptorRunImg from "@/assets/toxic-utahraptor-run.png";
 import venomusRunImg from "@/assets/venomus-run.png";
+import sandPterodactylImg from "@/assets/sand-pterodactyl.png";
+import miniSandRaptorImg from "@/assets/mini-sand-raptor.png";
+import sandUtahraptorImg from "@/assets/sand-utahraptor.png";
+import dunecrusherImg from "@/assets/dunecrusher.png";
+import sandPterodactylRunImg from "@/assets/sand-pterodactyl-run.png";
+import miniSandRaptorRunImg from "@/assets/mini-sand-raptor-run.png";
+import sandUtahraptorRunImg from "@/assets/sand-utahraptor-run.png";
+import dunecrusherRunImg from "@/assets/dunecrusher-run.png";
+import stormPterodactylImg from "@/assets/storm-pterodactyl.png";
+import miniStormRaptorImg from "@/assets/mini-storm-raptor.png";
+import stormUtahraptorImg from "@/assets/storm-utahraptor.png";
+import voltasaurusImg from "@/assets/voltasaurus.png";
+import stormPterodactylRunImg from "@/assets/storm-pterodactyl-run.png";
+import miniStormRaptorRunImg from "@/assets/mini-storm-raptor-run.png";
+import stormUtahraptorRunImg from "@/assets/storm-utahraptor-run.png";
+import voltasaurusRunImg from "@/assets/voltasaurus-run.png";
+import shadowPterodactylImg from "@/assets/shadow-pterodactyl.png";
+import miniShadowRaptorImg from "@/assets/mini-shadow-raptor.png";
+import shadowUtahraptorImg from "@/assets/shadow-utahraptor.png";
+import eclipsaurusImg from "@/assets/eclipsaurus.png";
+import shadowPterodactylRunImg from "@/assets/shadow-pterodactyl-run.png";
+import miniShadowRaptorRunImg from "@/assets/mini-shadow-raptor-run.png";
+import shadowUtahraptorRunImg from "@/assets/shadow-utahraptor-run.png";
+import eclipsaurusRunImg from "@/assets/eclipsaurus-run.png";
 
 export const SPRITES = {
   rocket_boy: rocketBoyImg,
@@ -42,6 +66,18 @@ export const SPRITES = {
   mini_toxic_raptor: miniToxicRaptorImg,
   toxic_utahraptor: toxicUtahraptorImg,
   venomus: venomusImg,
+  sand_pterodactyl: sandPterodactylImg,
+  mini_sand_raptor: miniSandRaptorImg,
+  sand_utahraptor: sandUtahraptorImg,
+  dunecrusher: dunecrusherImg,
+  storm_pterodactyl: stormPterodactylImg,
+  mini_storm_raptor: miniStormRaptorImg,
+  storm_utahraptor: stormUtahraptorImg,
+  voltasaurus: voltasaurusImg,
+  shadow_pterodactyl: shadowPterodactylImg,
+  mini_shadow_raptor: miniShadowRaptorImg,
+  shadow_utahraptor: shadowUtahraptorImg,
+  eclipsaurus: eclipsaurusImg,
 } as const;
 
 export const RUN_SHEETS: Record<string, { src: string; frames: number }> = {
@@ -59,6 +95,18 @@ export const RUN_SHEETS: Record<string, { src: string; frames: number }> = {
   mini_toxic_raptor: { src: miniToxicRaptorRunImg, frames: 4 },
   toxic_utahraptor: { src: toxicUtahraptorRunImg, frames: 4 },
   venomus: { src: venomusRunImg, frames: 4 },
+  sand_pterodactyl: { src: sandPterodactylRunImg, frames: 4 },
+  mini_sand_raptor: { src: miniSandRaptorRunImg, frames: 4 },
+  sand_utahraptor: { src: sandUtahraptorRunImg, frames: 4 },
+  dunecrusher: { src: dunecrusherRunImg, frames: 4 },
+  storm_pterodactyl: { src: stormPterodactylRunImg, frames: 4 },
+  mini_storm_raptor: { src: miniStormRaptorRunImg, frames: 4 },
+  storm_utahraptor: { src: stormUtahraptorRunImg, frames: 4 },
+  voltasaurus: { src: voltasaurusRunImg, frames: 4 },
+  shadow_pterodactyl: { src: shadowPterodactylRunImg, frames: 4 },
+  mini_shadow_raptor: { src: miniShadowRaptorRunImg, frames: 4 },
+  shadow_utahraptor: { src: shadowUtahraptorRunImg, frames: 4 },
+  eclipsaurus: { src: eclipsaurusRunImg, frames: 4 },
 };
 
 export type Rarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "MYTHIC";
@@ -203,6 +251,72 @@ export const WEAPONS: Record<string, WeaponDef> = {
     rarity: "LEGENDARY",
     description: "Living thorn-vines wrapped in bone. The prize of World 3.",
   },
+  sand_bone_axe: {
+    id: "sand_bone_axe",
+    name: "Sunstone Bone Axe",
+    damage: 48,
+    range: 130,
+    arc: 1.5,
+    cooldown: 0.38,
+    color: "#f2c063",
+    rarity: "EPIC",
+    description: "Bone fused with desert sunstone. Hits like a dune.",
+  },
+  sand_claw: {
+    id: "sand_claw",
+    name: "Legendary Sand Claw",
+    damage: 72,
+    range: 152,
+    arc: 1.95,
+    cooldown: 0.29,
+    color: "#ffcc57",
+    rarity: "LEGENDARY",
+    description: "Sharpened by a thousand sandstorms. The prize of World 4.",
+  },
+  storm_bone_axe: {
+    id: "storm_bone_axe",
+    name: "Storm Bone Axe",
+    damage: 60,
+    range: 136,
+    arc: 1.55,
+    cooldown: 0.36,
+    color: "#8fd0ff",
+    rarity: "EPIC",
+    description: "Bone wrapped in live lightning. Crackles on every swing.",
+  },
+  storm_claw: {
+    id: "storm_claw",
+    name: "Legendary Storm Claw",
+    damage: 90,
+    range: 158,
+    arc: 2,
+    cooldown: 0.27,
+    color: "#ffe23d",
+    rarity: "LEGENDARY",
+    description: "A caught thunderbolt on a bone handle. The prize of World 5.",
+  },
+  shadow_bone_axe: {
+    id: "shadow_bone_axe",
+    name: "Moonstone Bone Axe",
+    damage: 76,
+    range: 142,
+    arc: 1.6,
+    cooldown: 0.34,
+    color: "#b39bff",
+    rarity: "EPIC",
+    description: "Cut from a fallen moonstone. Hums in the dark.",
+  },
+  shadow_claw: {
+    id: "shadow_claw",
+    name: "Legendary Shadow Claw",
+    damage: 115,
+    range: 168,
+    arc: 2.1,
+    cooldown: 0.25,
+    color: "#c08bff",
+    rarity: "LEGENDARY",
+    description: "Living night bound to bone. The final prize of Dino Quest.",
+  },
 };
 
 export const PETS: Record<string, PetDef> = {
@@ -326,6 +440,126 @@ export const PETS: Record<string, PetDef> = {
     cooldown: 2.3,
     description: "The jungle titan. Ultimate World 3 prize.",
   },
+  mini_sand_raptor: {
+    id: "mini_sand_raptor",
+    name: "Mini Sand Raptor",
+    art: miniSandRaptorImg,
+    damage: 78,
+    cooldown: 1.3,
+    description: "Bursts out of the sand to bite and vanish again.",
+  },
+  sand_utahraptor: {
+    id: "sand_utahraptor",
+    name: "Sand Utahraptor",
+    art: sandUtahraptorImg,
+    damage: 120,
+    cooldown: 1.6,
+    description: "Desert hunter with claws like carved sandstone.",
+  },
+  baby_sand_raptor: {
+    id: "baby_sand_raptor",
+    name: "Baby Sand Raptor",
+    art: miniSandRaptorImg,
+    damage: 44,
+    cooldown: 1.25,
+    description: "Hatched in a dune. Full of grit — literally.",
+  },
+  sand_pterodactyl: {
+    id: "sand_pterodactyl",
+    name: "Sand Pterodactyl",
+    art: sandPterodactylImg,
+    damage: 92,
+    cooldown: 1.35,
+    description: "Hidden tomb treasure. Rides the sandstorm.",
+  },
+  dunecrusher: {
+    id: "dunecrusher",
+    name: "Dunecrusher",
+    art: dunecrusherImg,
+    damage: 230,
+    cooldown: 2.3,
+    description: "The sandstone giant. Ultimate World 4 prize.",
+  },
+  mini_storm_raptor: {
+    id: "mini_storm_raptor",
+    name: "Mini Storm Raptor",
+    art: miniStormRaptorImg,
+    damage: 98,
+    cooldown: 1.25,
+    description: "Zips between enemies leaving arcs of lightning.",
+  },
+  storm_utahraptor: {
+    id: "storm_utahraptor",
+    name: "Storm Utahraptor",
+    art: stormUtahraptorImg,
+    damage: 150,
+    cooldown: 1.55,
+    description: "Every strike lands with a thunderclap.",
+  },
+  baby_storm_raptor: {
+    id: "baby_storm_raptor",
+    name: "Baby Storm Raptor",
+    art: miniStormRaptorImg,
+    damage: 56,
+    cooldown: 1.2,
+    description: "Hatched in a thundercloud. Shocking manners.",
+  },
+  storm_pterodactyl: {
+    id: "storm_pterodactyl",
+    name: "Storm Pterodactyl",
+    art: stormPterodactylImg,
+    damage: 115,
+    cooldown: 1.3,
+    description: "Hidden tesla-cave treasure. Wings full of sparks.",
+  },
+  voltasaurus: {
+    id: "voltasaurus",
+    name: "Voltasaurus",
+    art: voltasaurusImg,
+    damage: 285,
+    cooldown: 2.2,
+    description: "The storm titan. Ultimate World 5 prize.",
+  },
+  mini_shadow_raptor: {
+    id: "mini_shadow_raptor",
+    name: "Mini Shadow Raptor",
+    art: miniShadowRaptorImg,
+    damage: 124,
+    cooldown: 1.2,
+    description: "Steps through shadow to hit whatever you look at.",
+  },
+  shadow_utahraptor: {
+    id: "shadow_utahraptor",
+    name: "Shadow Utahraptor",
+    art: shadowUtahraptorImg,
+    damage: 185,
+    cooldown: 1.5,
+    description: "Moonlit hunter that strikes from nowhere.",
+  },
+  baby_shadow_raptor: {
+    id: "baby_shadow_raptor",
+    name: "Baby Shadow Raptor",
+    art: miniShadowRaptorImg,
+    damage: 70,
+    cooldown: 1.2,
+    description: "Hatched in a crater. Glows faintly at night.",
+  },
+  shadow_pterodactyl: {
+    id: "shadow_pterodactyl",
+    name: "Shadow Pterodactyl",
+    art: shadowPterodactylImg,
+    damage: 145,
+    cooldown: 1.3,
+    description: "Hidden eclipse-cave treasure. Silent wings.",
+  },
+  eclipsaurus: {
+    id: "eclipsaurus",
+    name: "Eclipsaurus",
+    art: eclipsaurusImg,
+    damage: 350,
+    cooldown: 2.1,
+    description: "The moon titan. The rarest pet in Dino Quest.",
+  },
 };
 
 /** Every pet card maps to a playable pet. */
@@ -336,6 +570,9 @@ export const PET_SPRITE: Record<string, string> = {
   ember_pterodactyl: "pterodactyl",
   frost_pterodactyl: "frost_pterodactyl",
   vine_pterodactyl: "vine_pterodactyl",
+  baby_sand_raptor: "mini_sand_raptor",
+  baby_storm_raptor: "mini_storm_raptor",
+  baby_shadow_raptor: "mini_shadow_raptor",
 };
 
 /** Sprite/run-sheet key used to draw a pet. */
@@ -357,6 +594,21 @@ export const CARD_TO_PET: Record<string, string> = {
   card_vine_pterodactyl: "vine_pterodactyl",
   card_baby_toxic_raptor: "baby_toxic_raptor",
   card_venomus: "venomus",
+  card_mini_sand_raptor: "mini_sand_raptor",
+  card_sand_utahraptor: "sand_utahraptor",
+  card_baby_sand_raptor: "baby_sand_raptor",
+  card_sand_pterodactyl: "sand_pterodactyl",
+  card_dunecrusher: "dunecrusher",
+  card_mini_storm_raptor: "mini_storm_raptor",
+  card_storm_utahraptor: "storm_utahraptor",
+  card_baby_storm_raptor: "baby_storm_raptor",
+  card_storm_pterodactyl: "storm_pterodactyl",
+  card_voltasaurus: "voltasaurus",
+  card_mini_shadow_raptor: "mini_shadow_raptor",
+  card_shadow_utahraptor: "shadow_utahraptor",
+  card_baby_shadow_raptor: "baby_shadow_raptor",
+  card_shadow_pterodactyl: "shadow_pterodactyl",
+  card_eclipsaurus: "eclipsaurus",
 };
 
 /** All pets the player can equip, derived from owned pets + owned pet cards. */
@@ -609,6 +861,174 @@ export const CARDS: Record<string, CardDef> = {
     rarity: "MYTHIC",
     art: venomusImg,
     description: "The jungle titan. Ultimate World 3 prize.",
+  },
+  card_sand_bone_axe: {
+    id: "card_sand_bone_axe",
+    name: "Sunstone Bone Axe",
+    type: "WEAPON",
+    rarity: "EPIC",
+    art: "",
+    description: "Found in the buried Pharaoh Vault.",
+  },
+  card_sand_claw: {
+    id: "card_sand_claw",
+    name: "Legendary Sand Claw",
+    type: "WEAPON",
+    rarity: "LEGENDARY",
+    art: "",
+    description: "Bones + a thousand sandstorms. The pride of World 4.",
+  },
+  card_sand_pterodactyl: {
+    id: "card_sand_pterodactyl",
+    name: "Sand Pterodactyl",
+    type: "PET",
+    rarity: "RARE",
+    art: sandPterodactylImg,
+    description: "Hidden tomb treasure. Rides the sandstorm.",
+  },
+  card_baby_sand_raptor: {
+    id: "card_baby_sand_raptor",
+    name: "Baby Sand Raptor",
+    type: "PET",
+    rarity: "COMMON",
+    art: miniSandRaptorImg,
+    description: "Hatched in a dune. Full of grit.",
+  },
+  card_mini_sand_raptor: {
+    id: "card_mini_sand_raptor",
+    name: "Mini Sand Raptor",
+    type: "PET",
+    rarity: "RARE",
+    art: miniSandRaptorImg,
+    description: "Burrows, bites, disappears again.",
+  },
+  card_sand_utahraptor: {
+    id: "card_sand_utahraptor",
+    name: "Sand Utahraptor",
+    type: "PET",
+    rarity: "EPIC",
+    art: sandUtahraptorImg,
+    description: "Sandstone-clawed hunter of the deep desert.",
+  },
+  card_dunecrusher: {
+    id: "card_dunecrusher",
+    name: "Dunecrusher",
+    type: "PET",
+    rarity: "MYTHIC",
+    art: dunecrusherImg,
+    description: "The sandstone giant. Ultimate World 4 prize.",
+  },
+  card_storm_bone_axe: {
+    id: "card_storm_bone_axe",
+    name: "Storm Bone Axe",
+    type: "WEAPON",
+    rarity: "EPIC",
+    art: "",
+    description: "Found in the Charged Battery Vault.",
+  },
+  card_storm_claw: {
+    id: "card_storm_claw",
+    name: "Legendary Storm Claw",
+    type: "WEAPON",
+    rarity: "LEGENDARY",
+    art: "",
+    description: "Bones + a caught thunderbolt. The pride of World 5.",
+  },
+  card_storm_pterodactyl: {
+    id: "card_storm_pterodactyl",
+    name: "Storm Pterodactyl",
+    type: "PET",
+    rarity: "RARE",
+    art: stormPterodactylImg,
+    description: "Hidden tesla-cave treasure. Wings full of sparks.",
+  },
+  card_baby_storm_raptor: {
+    id: "card_baby_storm_raptor",
+    name: "Baby Storm Raptor",
+    type: "PET",
+    rarity: "COMMON",
+    art: miniStormRaptorImg,
+    description: "Hatched in a thundercloud. Shocking manners.",
+  },
+  card_mini_storm_raptor: {
+    id: "card_mini_storm_raptor",
+    name: "Mini Storm Raptor",
+    type: "PET",
+    rarity: "RARE",
+    art: miniStormRaptorImg,
+    description: "Small, fast and buzzing with static.",
+  },
+  card_storm_utahraptor: {
+    id: "card_storm_utahraptor",
+    name: "Storm Utahraptor",
+    type: "PET",
+    rarity: "EPIC",
+    art: stormUtahraptorImg,
+    description: "Thunder-clawed hunter of the peaks.",
+  },
+  card_voltasaurus: {
+    id: "card_voltasaurus",
+    name: "Voltasaurus",
+    type: "PET",
+    rarity: "MYTHIC",
+    art: voltasaurusImg,
+    description: "The storm titan. Ultimate World 5 prize.",
+  },
+  card_shadow_bone_axe: {
+    id: "card_shadow_bone_axe",
+    name: "Moonstone Bone Axe",
+    type: "WEAPON",
+    rarity: "EPIC",
+    art: "",
+    description: "Found in the Starlight Vault.",
+  },
+  card_shadow_claw: {
+    id: "card_shadow_claw",
+    name: "Legendary Shadow Claw",
+    type: "WEAPON",
+    rarity: "LEGENDARY",
+    art: "",
+    description: "Bones + living night. The final prize of Dino Quest.",
+  },
+  card_shadow_pterodactyl: {
+    id: "card_shadow_pterodactyl",
+    name: "Shadow Pterodactyl",
+    type: "PET",
+    rarity: "RARE",
+    art: shadowPterodactylImg,
+    description: "Hidden eclipse-cave treasure. Silent wings.",
+  },
+  card_baby_shadow_raptor: {
+    id: "card_baby_shadow_raptor",
+    name: "Baby Shadow Raptor",
+    type: "PET",
+    rarity: "COMMON",
+    art: miniShadowRaptorImg,
+    description: "Hatched in a crater. Glows faintly at night.",
+  },
+  card_mini_shadow_raptor: {
+    id: "card_mini_shadow_raptor",
+    name: "Mini Shadow Raptor",
+    type: "PET",
+    rarity: "RARE",
+    art: miniShadowRaptorImg,
+    description: "Steps through shadows to bite you from behind.",
+  },
+  card_shadow_utahraptor: {
+    id: "card_shadow_utahraptor",
+    name: "Shadow Utahraptor",
+    type: "PET",
+    rarity: "EPIC",
+    art: shadowUtahraptorImg,
+    description: "Moonlit hunter of the sea of night.",
+  },
+  card_eclipsaurus: {
+    id: "card_eclipsaurus",
+    name: "Eclipsaurus",
+    type: "PET",
+    rarity: "MYTHIC",
+    art: eclipsaurusImg,
+    description: "The moon titan. The rarest card in Dino Quest.",
   },
 };
 

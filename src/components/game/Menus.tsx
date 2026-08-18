@@ -163,18 +163,10 @@ export function WorldMap({
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         {WORLDS.map((w) => {
           const key = String(w.id);
-          const unlocked =
-            w.id === 1 ||
-            (w.id === 2 && save.world2Unlocked) ||
-            (w.id === 3 && save.world3Unlocked);
+          const unlocked = !w.unlockFlag || !!save[w.unlockFlag];
           // "at" is the frontier level, never the level currently being replayed.
           const at = save.progress?.[key] ?? 0;
-          const complete =
-            w.id === 1
-              ? save.world1Complete
-              : w.id === 2
-                ? save.world2Complete
-                : save.world3Complete;
+          const complete = !!save[w.completeFlag];
           return (
             <div key={w.id} className={`${panel} ${unlocked ? "" : "opacity-60"}`}>
               <div className="text-xs font-black tracking-widest text-amber-300">WORLD {w.id}</div>
@@ -183,9 +175,7 @@ export function WorldMap({
               </div>
               <div className="mt-1 text-xs font-bold text-primary">
                 {!unlocked
-                  ? w.id === 3
-                    ? "LOCKED — defeat Glacierus to unlock"
-                    : "LOCKED — defeat Firesauras to unlock"
+                  ? w.unlockHint
                   : complete
                     ? "COMPLETED"
                     : `IN PROGRESS · ${w.areas[at]?.name ?? w.areas[0]?.name}`}

@@ -23,6 +23,12 @@ export interface SaveData {
   world2Complete: boolean;
   world3Unlocked: boolean;
   world3Complete: boolean;
+  world4Unlocked: boolean;
+  world4Complete: boolean;
+  world5Unlocked: boolean;
+  world5Complete: boolean;
+  world6Unlocked: boolean;
+  world6Complete: boolean;
   /** Bone Forge upgrade levels. */
   upgrades: Record<string, number>;
   /** Spare lives bought with bones. */
@@ -51,13 +57,19 @@ export function defaultSave(): SaveData {
     cards: ["card_rocket_boy", "card_pink_explorer", "card_bone_sword"],
     world: 1,
     areaIndex: 0,
-    progress: { "1": 0, "2": 0, "3": 0 },
-    checkpoints: { "1": 0, "2": 0, "3": 0 },
+    progress: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0 },
+    checkpoints: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0 },
     world1Complete: false,
     world2Unlocked: false,
     world2Complete: false,
     world3Unlocked: false,
     world3Complete: false,
+    world4Unlocked: false,
+    world4Complete: false,
+    world5Unlocked: false,
+    world5Complete: false,
+    world6Unlocked: false,
+    world6Complete: false,
     upgrades: { maxHp: 0, damage: 0, petPower: 0 },
     extraLives: 0,
     foundCaves: {},
@@ -124,7 +136,7 @@ function migrate(raw: unknown): SaveData {
     pets,
     equippedPet,
     cards: Array.from(new Set([...d.cards, ...strList(p["cards"], [])])),
-    world: Math.round(num(p["world"], 1, 1, 3)),
+    world: Math.round(num(p["world"], 1, 1, 6)),
     areaIndex: Math.round(num(p["areaIndex"], 0, 0, 50)),
     progress: numMap(p["progress"], d.progress),
     checkpoints: numMap(p["checkpoints"], d.checkpoints),
@@ -133,6 +145,12 @@ function migrate(raw: unknown): SaveData {
     world2Complete: bool(p["world2Complete"], false),
     world3Unlocked: bool(p["world3Unlocked"], false),
     world3Complete: bool(p["world3Complete"], false),
+    world4Unlocked: bool(p["world4Unlocked"], false),
+    world4Complete: bool(p["world4Complete"], false),
+    world5Unlocked: bool(p["world5Unlocked"], false),
+    world5Complete: bool(p["world5Complete"], false),
+    world6Unlocked: bool(p["world6Unlocked"], false),
+    world6Complete: bool(p["world6Complete"], false),
     upgrades: numMap(p["upgrades"], d.upgrades),
     extraLives: Math.round(num(p["extraLives"], 0, 0, 99)),
     foundCaves: boolMap(p["foundCaves"]),

@@ -20,7 +20,22 @@ export type EnemyType =
   | "sporeling"
   | "mini_toxic_raptor"
   | "toxic_utahraptor"
-  | "venomus";
+  | "venomus"
+  | "sand_pterodactyl"
+  | "sandling"
+  | "mini_sand_raptor"
+  | "sand_utahraptor"
+  | "dunecrusher"
+  | "storm_pterodactyl"
+  | "sparkling"
+  | "mini_storm_raptor"
+  | "storm_utahraptor"
+  | "voltasaurus"
+  | "shadow_pterodactyl"
+  | "shadowling"
+  | "mini_shadow_raptor"
+  | "shadow_utahraptor"
+  | "eclipsaurus";
 
 export interface SpawnDef {
   type: EnemyType;
@@ -45,7 +60,7 @@ export interface AreaDef {
   eruptions: number; // seconds between eruptions, 0 = none
   cave_dark?: boolean;
   /** Visual theme for ground, hazard pools and rocks. */
-  theme?: "fire" | "ice" | "poison";
+  theme?: "fire" | "ice" | "poison" | "desert" | "electric" | "shadow";
   /** Clearing this area stores a respawn checkpoint. */
   checkpoint?: boolean;
 }
