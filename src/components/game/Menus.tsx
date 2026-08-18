@@ -142,9 +142,11 @@ export function WorldMap({
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         {WORLDS.map((w) => {
           const key = String(w.id);
-          const unlocked = w.id === 1 || (w.id === 2 && save.world2Unlocked);
+          const unlocked =
+            w.id === 1 || (w.id === 2 && save.world2Unlocked) || (w.id === 3 && save.world3Unlocked);
           const at = currentWorld === w.id ? save.areaIndex : (save.progress?.[key] ?? 0);
-          const complete = w.id === 1 ? save.world1Complete : save.world2Complete;
+          const complete =
+            w.id === 1 ? save.world1Complete : w.id === 2 ? save.world2Complete : save.world3Complete;
           return (
             <div key={w.id} className={`${panel} ${unlocked ? "" : "opacity-60"}`}>
               <div className="text-xs font-black tracking-widest text-amber-300">WORLD {w.id}</div>
@@ -153,7 +155,9 @@ export function WorldMap({
               </div>
               <div className="mt-1 text-xs font-bold text-primary">
                 {!unlocked
-                  ? "LOCKED — defeat Firesauras to unlock"
+                  ? w.id === 3
+                    ? "LOCKED — defeat Glacierus to unlock"
+                    : "LOCKED — defeat Firesauras to unlock"
                   : complete
                     ? "COMPLETED"
                     : `IN PROGRESS · ${w.areas[at]?.name ?? w.areas[0]?.name}`}
@@ -195,17 +199,6 @@ export function WorldMap({
           );
         })}
 
-        <div className={`${panel} opacity-60`}>
-          <div className="text-xs font-black tracking-widest text-emerald-300">WORLD 3</div>
-          <div className="text-2xl font-black text-foreground">🌴 POISON JUNGLE</div>
-          <div className="mt-1 text-xs font-bold text-emerald-300">
-            {save.world3Unlocked ? "UNLOCKED — COMING SOON" : "LOCKED — defeat Glacierus to unlock"}
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            A steaming poison forest full of toxic spores, vine traps and venom dinosaurs. Arriving in a
-            future update.
-          </p>
-        </div>
       </div>
     </Shell>
   );

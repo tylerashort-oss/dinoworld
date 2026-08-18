@@ -462,13 +462,22 @@ export function GameScreen({
                 Firesauras card and all of your pets.
               </p>
             </>
-          ) : (
+          ) : victory.world === 2 ? (
             <>
               <h2 className="text-3xl font-black text-sky-300 md:text-5xl">WORLD 2 COMPLETE!</h2>
-              <p className="mt-3 text-xl font-black text-emerald-300">🌴 POISON JUNGLE SPOTTED!</p>
+              <p className="mt-3 text-xl font-black text-emerald-300">🌴 POISON JUNGLE UNLOCKED!</p>
               <p className="mt-2 max-w-md text-center text-sm text-muted-foreground">
-                You beat Glacierus and claimed the Legendary Ice Claw. World 3, the Poison Jungle, is
-                appearing on your map — it opens in the next update.
+                You beat Glacierus and claimed the Legendary Ice Claw. World 3, the Poison Jungle, is now
+                playable on your world map.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-3xl font-black text-emerald-300 md:text-5xl">WORLD 3 COMPLETE!</h2>
+              <p className="mt-3 text-xl font-black text-lime-300">🌴 VENOMUS IS YOUR PET!</p>
+              <p className="mt-2 max-w-md text-center text-sm text-muted-foreground">
+                You cleared the Poison Jungle, claimed the Legendary Vine Claw and can now replay any jungle
+                level for bones.
               </p>
             </>
           )}
