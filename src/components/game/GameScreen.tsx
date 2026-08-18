@@ -294,7 +294,7 @@ export function GameScreen({
               ? "iceChestOpened"
               : "chestOpened"
         ],
-      foundCaves: {},
+      foundCaves: s.foundCaves ?? {},
       keybinds: s.keybinds,
       difficulty: s.world ?? 1,
       bonusMaxHp: (up["maxHp"] ?? 0) * 25,
@@ -303,11 +303,13 @@ export function GameScreen({
       petHits: pink ? 2 : 1,
       magnet: pink ? 110 : 46,
       shield: pink ? 1 : 0,
+      dash: pink,
       onHud: setHud,
       onEvent: (e) => handleEvent.current(e),
     });
     engineRef.current = engine;
-    (window as unknown as { __dinoEngine?: GameEngine }).__dinoEngine = engine;
+    if (import.meta.env.DEV)
+      (window as unknown as { __dinoEngine?: GameEngine }).__dinoEngine = engine;
     engine.start();
     return () => {
       engine.destroy();
