@@ -170,6 +170,7 @@ export class GameEngine {
   private invuln = 0;
   private attackCd = 0;
   private attackAnim = 0;
+  private attackHeld = false;
   private petCd = 0;
   private dead = false;
   private speedMul = 1;
@@ -327,10 +328,13 @@ export class GameEngine {
     }
     if (k === "j") this.attack();
     if (k === "k") this.petAttack();
+    if (k === "j" || k === "f" || k === "enter") this.attackHeld = true;
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
     this.keys[e.key.toLowerCase()] = false;
+    const k = e.key.toLowerCase();
+    if (k === "j" || k === "f" || k === "enter") this.attackHeld = false;
   };
 
   banner(text: string) {
@@ -339,6 +343,11 @@ export class GameEngine {
   }
 
   // ---------------- actions ----------------
+  setAttackHeld(held: boolean) {
+    this.attackHeld = held;
+    if (held) this.attack();
+  }
+
   attack() {
     if (this.dead || this.paused || this.attackCd > 0) return;
     const w = getWeapon(this.weaponId);
@@ -347,7 +356,7 @@ export class GameEngine {
     playSfx("attack");
     // Kid-friendly auto-aim: if an enemy is in reach, swing at the closest one.
     const assist = this.nearestEnemy(this.px, this.py);
-    if (assist && dist(this.px, this.py, assist.x, assist.y) < w.range + assist.radius + 40) {
+    if (assist) {
       this.aimX = assist.x - this.px;
       this.aimY = assist.y - this.py;
       const m = Math.hypot(this.aimX, this.aimY) || 1;
@@ -387,6 +396,18 @@ export class GameEngine {
       if (dist(this.px, this.py, this.area.chest.x, this.area.chest.y) < w.range + 40) this.openChest();
     }
     if (hitAny) playSfx("hit");
+
+    // ranged shot: always fire a glowing bolt so every tap has visible feedback
+    this.projectiles.push({
+      x: this.px + Math.cos(ang) * 30,
+      y: this.py - 18 + Math.sin(ang) * 30,
+      vx: Math.cos(ang) * 720,
+      vy: Math.sin(ang) * 720,
+      r: 12,
+      dmg: Math.max(4, Math.round(w.damage * 0.6)),
+      life: 1.4,
+      fromPlayer: true,
+    });
   }
 
   jump() {
@@ -702,6 +723,7 @@ export class GameEngine {
     }
 
     this.attackCd = Math.max(0, this.attackCd - dt);
+    if (this.attackHeld && this.attackCd <= 0) this.attack();
     this.attackAnim = Math.max(0, this.attackAnim - dt);
     this.petCd = Math.max(0, this.petCd - dt);
     this.invuln = Math.max(0, this.invuln - dt);
@@ -805,6 +827,16 @@ export class GameEngine {
       if (!p.fromPlayer && this.pz < 34 && dist(p.x, p.y, this.px, this.py) < p.r + 20) {
         p.life = 0;
         this.hurtPlayer(p.dmg);
+      }
+      if (p.fromPlayer) {
+        for (const e of this.enemies) {
+          if (dist(p.x, p.y, e.x, e.y) < p.r + e.radius) {
+            p.life = 0;
+            this.damageEnemy(e, p.dmg);
+            playSfx("hit");
+            break;
+          }
+        }
       }
     }
     this.projectiles = this.projectiles.filter(
