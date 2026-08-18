@@ -186,7 +186,7 @@ export const ICE_AREAS: AreaDef[] = [
   {
     id: "blizzard_pass",
     name: "BLIZZARD PASS",
-    subtitle: "Ice Area 6 of 7",
+    subtitle: "Ice Area 6 of 7 · MINI-BOSS GAUNTLET",
     theme: "ice",
     w: 2000,
     h: 1400,
