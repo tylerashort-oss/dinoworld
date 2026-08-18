@@ -1,5 +1,6 @@
 import { AREAS, type AreaDef } from "./areas";
 import { ICE_AREAS } from "./areas-ice";
+import { POISON_AREAS } from "./areas-poison";
 
 export interface WorldDef {
   id: number;
@@ -26,6 +27,14 @@ export const WORLDS: WorldDef[] = [
     blurb: "Frozen tundra, glacier caves and the ice titan Glacierus.",
     areas: ICE_AREAS,
     finalBoss: "glacierus",
+  },
+  {
+    id: 3,
+    name: "POISON JUNGLE",
+    emoji: "🌴",
+    blurb: "Toxic sludge, spore hollows and the jungle titan Venomus.",
+    areas: POISON_AREAS,
+    finalBoss: "venomus",
   },
 ];
 
