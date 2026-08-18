@@ -525,6 +525,20 @@ export class GameEngine {
     this.petStrike();
   }
 
+  /** Stand back up on the spot after spending an extra life. */
+  revive() {
+    this.dead = false;
+    this.hp = this.maxHp;
+    this.shield = this.shieldMax;
+    this.invuln = 2.5;
+    this.banner("EXTRA LIFE USED!");
+  }
+
+  private petAttackLegacy() {
+    if (this.dead || this.paused || !this.petId || this.petCd > 0) return;
+    this.petStrike();
+  }
+
   /** The pet lunges at the nearest enemy and claws it. */
   private petStrike() {
     if (this.dead || !this.petId) return;
