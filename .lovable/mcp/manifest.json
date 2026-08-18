@@ -43,12 +43,14 @@
           "properties": {
             "worldId": {
               "type": "integer",
-              "minimum": -9007199254740991,
-              "maximum": 9007199254740991,
+              "minimum": 1,
+              "maximum": 3,
               "description": "World id: 1 Volcanic Lands, 2 Ice World, 3 Poison Jungle."
             },
             "area": {
               "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
               "description": "Area id (e.g. 'lava_fields') or 1-based index as a string."
             }
           },
