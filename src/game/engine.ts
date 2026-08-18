@@ -1122,13 +1122,24 @@ export class GameEngine {
     t.height = 128;
     const c = t.getContext("2d");
     if (!c) return null;
-    c.fillStyle = this.area.cave_dark ? "#1b1013" : "#241a18";
-    c.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 220; i++) {
-      const v = Math.random();
-      c.fillStyle =
-        v > 0.94 ? "rgba(255,120,40,0.22)" : v > 0.6 ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.25)";
-      c.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 4, 1 + Math.random() * 4);
+    if (this.isIce) {
+      c.fillStyle = this.area.cave_dark ? "#152233" : "#20344a";
+      c.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 240; i++) {
+        const v = Math.random();
+        c.fillStyle =
+          v > 0.9 ? "rgba(200,235,255,0.22)" : v > 0.55 ? "rgba(255,255,255,0.05)" : "rgba(0,20,40,0.25)";
+        c.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 4, 1 + Math.random() * 4);
+      }
+    } else {
+      c.fillStyle = this.area.cave_dark ? "#1b1013" : "#241a18";
+      c.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 220; i++) {
+        const v = Math.random();
+        c.fillStyle =
+          v > 0.94 ? "rgba(255,120,40,0.22)" : v > 0.6 ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.25)";
+        c.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 4, 1 + Math.random() * 4);
+      }
     }
     return this.ctx.createPattern(t, "repeat");
   }
@@ -1171,8 +1182,8 @@ export class GameEngine {
       this.area.h * 0.4,
       Math.max(this.area.w, this.area.h) * 0.7,
     );
-    g.addColorStop(0, "rgba(255,90,20,0.10)");
-    g.addColorStop(1, "rgba(0,0,0,0.45)");
+    g.addColorStop(0, this.isIce ? "rgba(150,220,255,0.10)" : "rgba(255,90,20,0.10)");
+    g.addColorStop(1, this.isIce ? "rgba(0,10,30,0.45)" : "rgba(0,0,0,0.45)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.area.w, this.area.h);
 
