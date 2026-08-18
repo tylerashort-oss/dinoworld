@@ -66,6 +66,41 @@ interface Vec {
   y: number;
 }
 
+/** Shared, decoded-once image cache so re-entering a level never re-decodes sprites. */
+const IMAGE_CACHE: Record<string, HTMLImageElement> = {};
+
+function loadImage(src: string): HTMLImageElement {
+  const cached = IMAGE_CACHE[src];
+  if (cached) return cached;
+  const img = new Image();
+  img.onerror = () => {
+    console.warn("[dinoquest] sprite failed to load:", src);
+  };
+  img.src = src;
+  IMAGE_CACHE[src] = img;
+  return img;
+}
+
+/** Drop expired items in place instead of allocating a new array every frame. */
+function compact<T>(arr: T[], keep: (v: T) => boolean) {
+  let n = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i] as T;
+    if (keep(v)) arr[n++] = v;
+  }
+  arr.length = n;
+}
+
+/** Hard ceilings so a burst of cosmetics can never tank the frame rate on an iPad. */
+const MAX_PARTICLES = 260;
+const MAX_NUMBERS = 40;
+const MAX_PROJECTILES = 90;
+
+function pushCapped<T>(arr: T[], item: T, max: number) {
+  if (arr.length >= max) arr.shift();
+  arr.push(item);
+}
+
 interface Enemy {
   type: EnemyType;
   x: number;
