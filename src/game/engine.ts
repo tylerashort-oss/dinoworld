@@ -413,6 +413,12 @@ export class GameEngine {
   private magnet = 46;
   private shieldMax = 0;
   private shield = 0;
+  private dashEnabled = false;
+  private dashCd = 0;
+  private dashTime = 0;
+  private dashX = 1;
+  private dashY = 0;
+  private dashCooldown = 2.2;
 
   private weaponId: string;
   private petId: string | null;
@@ -469,6 +475,7 @@ export class GameEngine {
     this.petHits = opts.petHits ?? 1;
     this.magnet = opts.magnet ?? 46;
     this.shieldMax = opts.shield ?? 0;
+    this.dashEnabled = !!opts.dash;
     this.maxHp = 100 + (opts.bonusMaxHp ?? 0);
     this.hp = this.maxHp;
     this.preload(opts.characterId);
@@ -479,14 +486,10 @@ export class GameEngine {
 
   private preload(characterId: string) {
     (Object.keys(SPRITES) as (keyof typeof SPRITES)[]).forEach((k) => {
-      const img = new Image();
-      img.src = SPRITES[k];
-      this.images[k] = img;
+      this.images[k] = loadImage(SPRITES[k]);
     });
     Object.entries(RUN_SHEETS).forEach(([k, sheet]) => {
-      const img = new Image();
-      img.src = sheet.src;
-      this.images[`${k}__run`] = img;
+      this.images[`${k}__run`] = loadImage(sheet.src);
     });
     this.setRunSheet(characterId);
     this.images["player"] = this.images[characterId] ?? this.images["rocket_boy"];
@@ -556,6 +559,8 @@ export class GameEngine {
     this.invuln = 1;
     this.attackCd = 0;
     this.petCd = 0;
+    this.dashCd = 0;
+    this.dashTime = 0;
     this.enemies = [];
     this.projectiles = [];
     this.particles = [];
@@ -566,7 +571,7 @@ export class GameEngine {
     this.exitOpen = area.waves.length === 0 && !area.chest;
     this.chestOpen = false;
     this.caveFound = !!this.opts.foundCaves[area.id];
-    if (area.chest && this.opts.openedChest && area.id === "treasure_room") {
+    if (area.chest && this.opts.openedChest) {
       this.chestOpen = true;
       this.exitOpen = true;
     }
