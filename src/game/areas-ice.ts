@@ -228,6 +228,7 @@ export const ICE_AREAS: AreaDef[] = [
     exit: { x: 1900, y: 700 },
     eruptions: 7,
     cave_dark: true,
+    checkpoint: true,
   },
   {
     id: "glacierus_arena",
