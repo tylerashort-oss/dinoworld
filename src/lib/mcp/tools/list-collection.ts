@@ -1,4 +1,4 @@
-import { defineTool } from "@lovable.dev/mcp-js";
+import { defineTool, ToolError } from "@lovable.dev/mcp-js";
 import { z } from "zod";
 
 export default defineTool({
@@ -13,7 +13,12 @@ export default defineTool({
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ kind }) => {
-    const c = await import("../../../game/content");
+    let c;
+    try {
+      c = await import("../../../game/content");
+    } catch {
+      throw new ToolError("Collection data is unavailable.");
+    }
     const strip = <T extends { art?: string }>(v: T) => {
       const { art: _art, ...rest } = v;
       return rest;
