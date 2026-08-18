@@ -1,20 +1,30 @@
 import { useRef, useState } from "react";
 
-export function Joystick({ onChange }: { onChange: (v: { x: number; y: number }) => void }) {
-  const baseRef = useRef<HTMLDivElement>(null);
+/**
+ * Large, floating touch joystick.
+ * The whole bottom-left corner is a touch zone: wherever the thumb lands, the
+ * stick re-centres there so a slightly-off tap still moves the hero.
+ */
+export function Joystick({
+  onChange,
+  size = 210,
+}: {
+  onChange: (v: { x: number; y: number }) => void;
+  size?: number;
+}) {
+  const zoneRef = useRef<HTMLDivElement>(null);
   const pointerId = useRef<number | null>(null);
+  const origin = useRef({ x: 0, y: 0 });
+  const [center, setCenter] = useState<{ x: number; y: number } | null>(null);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
 
-  const R = 58;
+  const R = size * 0.42;
+  const knobSize = size * 0.44;
+  const zone = Math.round(size * 1.7);
 
   const move = (clientX: number, clientY: number) => {
-    const el = baseRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    let dx = clientX - cx;
-    let dy = clientY - cy;
+    let dx = clientX - origin.current.x;
+    let dy = clientY - origin.current.y;
     const d = Math.hypot(dx, dy);
     if (d > R) {
       dx = (dx / d) * R;
@@ -27,15 +37,24 @@ export function Joystick({ onChange }: { onChange: (v: { x: number; y: number })
   const end = () => {
     pointerId.current = null;
     setKnob({ x: 0, y: 0 });
+    setCenter(null);
     onChange({ x: 0, y: 0 });
   };
 
   return (
     <div
-      ref={baseRef}
+      ref={zoneRef}
       onPointerDown={(e) => {
+        if (pointerId.current !== null) return;
         pointerId.current = e.pointerId;
         e.currentTarget.setPointerCapture(e.pointerId);
+        const rect = e.currentTarget.getBoundingClientRect();
+        // keep the stick fully inside the zone
+        const half = size / 2;
+        const cx = Math.min(Math.max(e.clientX, rect.left + half), rect.right - half);
+        const cy = Math.min(Math.max(e.clientY, rect.top + half), rect.bottom - half);
+        origin.current = { x: cx, y: cy };
+        setCenter({ x: cx - rect.left, y: cy - rect.top });
         move(e.clientX, e.clientY);
       }}
       onPointerMove={(e) => {
@@ -43,14 +62,35 @@ export function Joystick({ onChange }: { onChange: (v: { x: number; y: number })
       }}
       onPointerUp={end}
       onPointerCancel={end}
-      className="relative h-[150px] w-[150px] touch-none rounded-full border-4 border-primary/40 bg-black/35 backdrop-blur-sm select-none"
-      style={{ boxShadow: "0 0 24px rgba(255,120,40,.25)" }}
+      onPointerLeave={(e) => {
+        if (pointerId.current === e.pointerId) end();
+      }}
+      className="relative touch-none select-none"
+      style={{ width: zone, height: zone }}
       aria-label="Movement joystick"
     >
+      {/* resting stick, shown until the player grabs it */}
       <div
-        className="absolute left-1/2 top-1/2 h-[68px] w-[68px] rounded-full border-2 border-primary bg-gradient-to-b from-primary/90 to-primary/50"
-        style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
-      />
+        className="pointer-events-none absolute rounded-full border-4 border-primary/40 bg-black/35 backdrop-blur-sm"
+        style={{
+          width: size,
+          height: size,
+          left: center ? center.x - size / 2 : 0,
+          bottom: center ? undefined : 0,
+          top: center ? center.y - size / 2 : undefined,
+          boxShadow: "0 0 28px rgba(255,120,40,.25)",
+          transition: center ? "none" : "left .12s ease, top .12s ease",
+        }}
+      >
+        <div
+          className="absolute left-1/2 top-1/2 rounded-full border-2 border-primary bg-gradient-to-b from-primary/90 to-primary/50"
+          style={{
+            width: knobSize,
+            height: knobSize,
+            transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))`,
+          }}
+        />
+      </div>
     </div>
   );
 }
