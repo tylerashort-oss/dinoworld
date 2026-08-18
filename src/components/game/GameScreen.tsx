@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AREAS } from "@/game/areas";
 import { GameEngine, type GameEvent, type HudState } from "@/game/engine";
+import { getAreas, getWorld } from "@/game/worlds";
 import { CARDS, getCard, getWeapon, type CardDef } from "@/game/content";
 import { initAudio, playSfx, setSoundEnabled } from "@/game/audio";
 import { persistSave, type SaveData } from "@/game/save";
@@ -22,7 +22,7 @@ export function GameScreen({
 }: {
   save: SaveData;
   setSave: (fn: (s: SaveData) => SaveData) => void;
-  onQuit: (target: "map" | "camp") => void;
+  onQuit: (target: "map" | "camp" | "settings") => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
@@ -33,8 +33,13 @@ export function GameScreen({
   const [reward, setReward] = useState<RewardOverlay | null>(null);
   const [dead, setDead] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [victory, setVictory] = useState(false);
+  const [victory, setVictory] = useState<null | { world: number }>(null);
   const transitioning = useRef(false);
+
+  const worldId = save.world ?? 1;
+  const worldKey = String(worldId);
+  const areas = getAreas(worldId);
+  const world = getWorld(worldId);
 
   const update = useCallback(
     (patch: (s: SaveData) => SaveData) => {
@@ -51,12 +56,17 @@ export function GameScreen({
   handleEvent.current = (ev: GameEvent) => {
     const eng = engineRef.current;
     if (!eng) return;
+    const s0 = saveRef.current;
+    const ice = (s0.world ?? 1) === 2;
     switch (ev.type) {
       case "bonesChanged":
         update((s) => ({ ...s, bones: ev.bones }));
         break;
       case "death":
         setDead(true);
+        break;
+      case "pauseRequested":
+        setPaused((p) => !p);
         break;
       case "caveFound": {
         const card = getCard(ev.cardId);
@@ -67,20 +77,24 @@ export function GameScreen({
         break;
       }
       case "chestOpened": {
-        const ids = ["card_fire_bone_axe", "card_baby_raptor", "card_mini_fire_raptor"];
-        if (saveRef.current.character === "pink_explorer") ids.push("card_fire_utahraptor");
+        const ids = ice
+          ? ["card_frost_bone_axe", "card_baby_frost_raptor", "card_mini_frost_raptor"]
+          : ["card_fire_bone_axe", "card_baby_raptor", "card_mini_fire_raptor"];
+        if (s0.character === "pink_explorer") ids.push(ice ? "card_frozen_utahraptor" : "card_fire_utahraptor");
         const cards = ids.map(getCard).filter(Boolean) as CardDef[];
-        const bonus = saveRef.current.character === "pink_explorer" ? 120 : 80;
+        const bonus = s0.character === "pink_explorer" ? 120 : 80;
+        const newWeapon = ice ? "frost_bone_axe" : "fire_bone_axe";
+        const upgradeFrom = ice ? ["bone_sword", "fire_bone_axe"] : ["bone_sword"];
         update((s) => ({
           ...s,
           cards: Array.from(new Set([...s.cards, ...ids])),
-          weapons: Array.from(new Set([...s.weapons, "fire_bone_axe"])),
-          equippedWeapon: s.equippedWeapon === "bone_sword" ? "fire_bone_axe" : s.equippedWeapon,
+          weapons: Array.from(new Set([...s.weapons, newWeapon])),
+          equippedWeapon: upgradeFrom.includes(s.equippedWeapon) ? newWeapon : s.equippedWeapon,
           bones: s.bones + bonus,
-          flags: { ...s.flags, chestOpened: true },
+          flags: { ...s.flags, [ice ? "iceChestOpened" : "chestOpened"]: true },
         }));
-        eng.setBones(saveRef.current.bones + bonus);
-        if (saveRef.current.equippedWeapon === "bone_sword") eng.setWeapon("fire_bone_axe");
+        eng.setBones(s0.bones + bonus);
+        if (upgradeFrom.includes(s0.equippedWeapon)) eng.setWeapon(newWeapon);
         playSfx("card");
         setReward({
           title: "TREASURE CHEST OPENED!",
@@ -91,25 +105,30 @@ export function GameScreen({
         break;
       }
       case "bossDefeated": {
-        if (ev.id === "mini_fire_raptor" || ev.id === "fire_utahraptor") {
+        const petBosses: Record<string, { card: string; bones: number; label: string }> = {
+          mini_fire_raptor: { card: "card_mini_fire_raptor", bones: 40, label: "MINI FIRE RAPTOR" },
+          fire_utahraptor: { card: "card_fire_utahraptor", bones: 70, label: "FIRE UTAHRAPTOR" },
+          mini_frost_raptor: { card: "card_mini_frost_raptor", bones: 60, label: "MINI FROST RAPTOR" },
+          frozen_utahraptor: { card: "card_frozen_utahraptor", bones: 95, label: "FROZEN UTAHRAPTOR" },
+        };
+        const pet = petBosses[ev.id];
+        if (pet) {
           const petId = ev.id;
-          const cardId = petId === "mini_fire_raptor" ? "card_mini_fire_raptor" : "card_fire_utahraptor";
-          const gained = petId === "mini_fire_raptor" ? 40 : 70;
           update((s) => ({
             ...s,
             pets: Array.from(new Set([...s.pets, petId])),
             equippedPet: petId,
-            cards: Array.from(new Set([...s.cards, cardId])),
-            bones: s.bones + gained,
+            cards: Array.from(new Set([...s.cards, pet.card])),
+            bones: s.bones + pet.bones,
           }));
           eng.setPet(petId);
-          eng.setBones(saveRef.current.bones + gained);
-          const card = getCard(cardId);
+          eng.setBones(s0.bones + pet.bones);
+          const card = getCard(pet.card);
           setReward({
-            title: `${petId === "mini_fire_raptor" ? "MINI FIRE RAPTOR" : "FIRE UTAHRAPTOR"} DEFEATED!`,
+            title: `${pet.label} DEFEATED!`,
             subtitle: "🦖 PET UNLOCKED! Press the PET button to make it attack.",
             cards: card ? [card] : [],
-            bones: gained,
+            bones: pet.bones,
           });
         } else if (ev.id === "firesauras") {
           const ids = ["card_firesauras", "card_fire_claw"];
@@ -123,12 +142,32 @@ export function GameScreen({
             world2Unlocked: true,
           }));
           eng.setWeapon("fire_claw");
-          eng.setBones(saveRef.current.bones + 300);
+          eng.setBones(s0.bones + 300);
           setReward({
             title: "FIRESAURAS DEFEATED!",
             subtitle: "MYTHIC card + LEGENDARY FIRE CLAW + 300 bones!",
             cards: ids.map(getCard).filter(Boolean) as CardDef[],
             bones: 300,
+            finalVictory: true,
+          });
+        } else if (ev.id === "glacierus") {
+          const ids = ["card_glacierus", "card_ice_claw"];
+          update((s) => ({
+            ...s,
+            cards: Array.from(new Set([...s.cards, ...ids])),
+            weapons: Array.from(new Set([...s.weapons, "ice_claw"])),
+            equippedWeapon: "ice_claw",
+            bones: s.bones + 450,
+            world2Complete: true,
+            world3Unlocked: true,
+          }));
+          eng.setWeapon("ice_claw");
+          eng.setBones(s0.bones + 450);
+          setReward({
+            title: "GLACIERUS DEFEATED!",
+            subtitle: "MYTHIC card + LEGENDARY ICE CLAW + 450 bones!",
+            cards: ids.map(getCard).filter(Boolean) as CardDef[],
+            bones: 450,
             finalVictory: true,
           });
         }
@@ -137,12 +176,23 @@ export function GameScreen({
       case "areaExit": {
         if (transitioning.current) return;
         transitioning.current = true;
+        const list = getAreas(s0.world ?? 1);
+        const cleared = list[ev.areaIndex];
         const next = ev.areaIndex + 1;
-        if (next >= AREAS.length) {
+        const key = String(s0.world ?? 1);
+        if (next >= list.length) {
           onQuit("map");
           return;
         }
-        update((s) => ({ ...s, areaIndex: next }));
+        update((s) => ({
+          ...s,
+          areaIndex: next,
+          progress: { ...s.progress, [key]: Math.max(s.progress?.[key] ?? 0, next) },
+          checkpoints: cleared?.checkpoint
+            ? { ...s.checkpoints, [key]: Math.max(s.checkpoints?.[key] ?? 0, next) }
+            : s.checkpoints,
+        }));
+        if (cleared?.checkpoint) eng.banner("CHECKPOINT SAVED!");
         eng.loadArea(next);
         window.setTimeout(() => (transitioning.current = false), 600);
         break;
@@ -156,15 +206,18 @@ export function GameScreen({
     const canvas = canvasRef.current;
     if (!canvas) return;
     setSoundEnabled(saveRef.current.sound);
+    const s = saveRef.current;
     const engine = new GameEngine({
       canvas,
-      characterId: saveRef.current.character,
-      weaponId: saveRef.current.equippedWeapon,
-      petId: saveRef.current.equippedPet,
-      areaIndex: saveRef.current.areaIndex,
-      bones: saveRef.current.bones,
-      openedChest: !!saveRef.current.flags["chestOpened"],
+      characterId: s.character,
+      weaponId: s.equippedWeapon,
+      petId: s.equippedPet,
+      world: s.world ?? 1,
+      areaIndex: s.areaIndex,
+      bones: s.bones,
+      openedChest: !!s.flags[(s.world ?? 1) === 2 ? "iceChestOpened" : "chestOpened"],
       foundCaves: {},
+      keybinds: s.keybinds,
       onHud: setHud,
       onEvent: (e) => handleEvent.current(e),
     });
@@ -177,7 +230,11 @@ export function GameScreen({
     };
   }, []);
 
-  const blocked = !!reward || dead || paused || victory;
+  useEffect(() => {
+    engineRef.current?.setKeybinds(save.keybinds);
+  }, [save.keybinds]);
+
+  const blocked = !!reward || dead || paused || !!victory;
   useEffect(() => {
     engineRef.current?.setPaused(blocked);
   }, [blocked]);
@@ -185,10 +242,18 @@ export function GameScreen({
   const closeReward = () => {
     const wasFinal = reward?.finalVictory;
     setReward(null);
-    if (wasFinal) setVictory(true);
+    if (wasFinal) setVictory({ world: worldId });
+  };
+
+  const respawnAtCheckpoint = () => {
+    const cp = save.checkpoints?.[worldKey] ?? 0;
+    setDead(false);
+    update((s) => ({ ...s, areaIndex: cp }));
+    engineRef.current?.loadArea(cp);
   };
 
   const weapon = getWeapon(save.equippedWeapon);
+  const checkpointArea = areas[save.checkpoints?.[worldKey] ?? 0];
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-black select-none">
@@ -211,7 +276,7 @@ export function GameScreen({
             🦴 {save.bones}
           </div>
           <div className="rounded-full bg-black/45 px-3 py-0.5 text-[10px] font-bold tracking-widest text-primary">
-            {hud?.areaName} · {hud?.areaSubtitle}
+            {world.emoji} {hud?.areaName} · {hud?.areaSubtitle}
           </div>
         </div>
 
@@ -239,8 +304,8 @@ export function GameScreen({
       )}
 
       {/* ---------- CONTROLS ---------- */}
-      <div className="absolute bottom-4 left-4">
-        <Joystick onChange={(v) => engineRef.current?.setInput(v)} />
+      <div className="absolute bottom-2 left-2">
+        <Joystick size={save.joystickSize ?? 210} onChange={(v) => engineRef.current?.setInput(v)} />
       </div>
 
       <div className="absolute bottom-4 right-4 flex items-end gap-3">
@@ -305,16 +370,18 @@ export function GameScreen({
       {dead && !reward && (
         <Overlay>
           <h2 className="text-3xl font-black text-destructive md:text-5xl">YOU WERE DEFEATED</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Your bones and cards are safe. Try the area again!</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your bones and cards are safe. You restart from your last checkpoint with full health.
+          </p>
+          <p className="mt-1 text-xs font-bold tracking-widest text-primary">
+            CHECKPOINT: {checkpointArea?.name ?? areas[0]?.name}
+          </p>
           <div className="mt-6 flex gap-3">
             <button
-              onClick={() => {
-                setDead(false);
-                engineRef.current?.restartArea();
-              }}
+              onClick={respawnAtCheckpoint}
               className="rounded-xl bg-primary px-8 py-3 text-lg font-black text-primary-foreground"
             >
-              TRY AGAIN
+              CONTINUE FROM CHECKPOINT
             </button>
             <button
               onClick={() => onQuit("map")}
@@ -328,12 +395,25 @@ export function GameScreen({
 
       {victory && (
         <Overlay>
-          <h2 className="text-3xl font-black text-primary md:text-5xl">WORLD 1 COMPLETE!</h2>
-          <p className="mt-3 text-xl font-black text-sky-300">🧊 WORLD 2 UNLOCKED!</p>
-          <p className="mt-2 max-w-md text-center text-sm text-muted-foreground">
-            Ice World is now visible on your world map. You kept the Legendary Fire Claw, the Mythic Firesauras
-            card and all of your pets.
-          </p>
+          {victory.world === 1 ? (
+            <>
+              <h2 className="text-3xl font-black text-primary md:text-5xl">WORLD 1 COMPLETE!</h2>
+              <p className="mt-3 text-xl font-black text-sky-300">🧊 ICE WORLD UNLOCKED!</p>
+              <p className="mt-2 max-w-md text-center text-sm text-muted-foreground">
+                Ice World is now playable on your world map. You kept the Legendary Fire Claw, the Mythic
+                Firesauras card and all of your pets.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-3xl font-black text-sky-300 md:text-5xl">WORLD 2 COMPLETE!</h2>
+              <p className="mt-3 text-xl font-black text-emerald-300">🌴 POISON JUNGLE SPOTTED!</p>
+              <p className="mt-2 max-w-md text-center text-sm text-muted-foreground">
+                You beat Glacierus and claimed the Legendary Ice Claw. World 3, the Poison Jungle, is
+                appearing on your map — it opens in the next update.
+              </p>
+            </>
+          )}
           <button
             onClick={() => onQuit("map")}
             className="mt-6 rounded-xl bg-primary px-8 py-3 text-lg font-black text-primary-foreground"
@@ -359,6 +439,9 @@ export function GameScreen({
               className="rounded-xl border-2 border-border bg-card px-10 py-3 font-bold text-foreground"
             >
               SOUND: {save.sound ? "ON" : "OFF"}
+            </button>
+            <button onClick={() => onQuit("settings")} className="rounded-xl border-2 border-border bg-card px-10 py-3 font-bold text-foreground">
+              ⚙️ SETTINGS & CONTROLS
             </button>
             <button onClick={() => onQuit("camp")} className="rounded-xl border-2 border-border bg-card px-10 py-3 font-bold text-foreground">
               🏕️ DINO CAMP
