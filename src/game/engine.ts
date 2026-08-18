@@ -28,6 +28,7 @@ export type GameEvent =
   | { type: "caveFound"; cardId: string }
   | { type: "areaExit"; areaIndex: number }
   | { type: "bonesChanged"; bones: number }
+  | { type: "pauseRequested" }
   | { type: "banner"; text: string };
 
 interface EngineOpts {
