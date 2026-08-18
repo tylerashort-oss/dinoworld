@@ -1602,7 +1602,17 @@ export class GameEngine {
   private drawEnemies(ctx: CanvasRenderingContext2D) {
     const sorted = [...this.enemies].sort((a, b) => a.y - b.y);
     for (const e of sorted) {
-      this.drawSprite(ctx, e.sprite, e.x, e.y, e.z, e.size, e.facing, e.hitFlash);
+      const sheetReady = !!e.runSheet && e.runSheet.complete && e.runSheet.naturalWidth > 0;
+      const bob = Math.abs(Math.sin(e.runPhase * Math.PI * 2)) * (e.flying ? 6 : e.size * 0.03);
+      if (sheetReady) {
+        const index = Math.floor(e.runPhase * e.runFrames) % e.runFrames;
+        this.drawSprite(ctx, e.runSheet, e.x, e.y, e.z + bob, e.size, e.facing, e.hitFlash, {
+          index,
+          count: e.runFrames,
+        });
+      } else {
+        this.drawSprite(ctx, e.sprite, e.x, e.y, e.z + bob, e.size, e.facing, e.hitFlash);
+      }
       // health bar
       const w = Math.max(60, e.size * 0.6);
       const bx = e.x - w / 2;
