@@ -1,5 +1,6 @@
 import { AREAS, type AreaDef } from "./areas";
 import { ICE_AREAS } from "./areas-ice";
+import { POISON_AREAS } from "./areas-poison";
 
 export interface WorldDef {
   id: number;
@@ -27,7 +28,16 @@ export const WORLDS: WorldDef[] = [
     areas: ICE_AREAS,
     finalBoss: "glacierus",
   },
+  {
+    id: 3,
+    name: "POISON JUNGLE",
+    emoji: "🌴",
+    blurb: "Toxic sludge, spore hollows and the jungle titan Venomus.",
+    areas: POISON_AREAS,
+    finalBoss: "venomus",
+  },
 ];
 
-export const getWorld = (id: number): WorldDef => WORLDS.find((w) => w.id === id) ?? (WORLDS[0] as WorldDef);
+export const getWorld = (id: number): WorldDef =>
+  WORLDS.find((w) => w.id === id) ?? (WORLDS[0] as WorldDef);
 export const getAreas = (worldId: number): AreaDef[] => getWorld(worldId).areas;

@@ -20,7 +20,9 @@ export function setSoundEnabled(v: boolean) {
 export function initAudio() {
   if (typeof window === "undefined") return;
   if (!ctx) {
-    const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const Ctor =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (Ctor) ctx = new Ctor();
   }
   if (ctx && ctx.state === "suspended") void ctx.resume();

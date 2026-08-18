@@ -18,6 +18,14 @@ import frostPterodactylRunImg from "@/assets/frost-pterodactyl-run.png";
 import miniFrostRaptorRunImg from "@/assets/mini-frost-raptor-run.png";
 import frozenUtahraptorRunImg from "@/assets/frozen-utahraptor-run.png";
 import glacierusRunImg from "@/assets/glacierus-run.png";
+import vinePterodactylImg from "@/assets/vine-pterodactyl.png";
+import miniToxicRaptorImg from "@/assets/mini-toxic-raptor.png";
+import toxicUtahraptorImg from "@/assets/toxic-utahraptor.png";
+import venomusImg from "@/assets/venomus.png";
+import vinePterodactylRunImg from "@/assets/vine-pterodactyl-run.png";
+import miniToxicRaptorRunImg from "@/assets/mini-toxic-raptor-run.png";
+import toxicUtahraptorRunImg from "@/assets/toxic-utahraptor-run.png";
+import venomusRunImg from "@/assets/venomus-run.png";
 
 export const SPRITES = {
   rocket_boy: rocketBoyImg,
@@ -30,6 +38,10 @@ export const SPRITES = {
   mini_frost_raptor: miniFrostRaptorImg,
   frozen_utahraptor: frozenUtahraptorImg,
   glacierus: glacierusImg,
+  vine_pterodactyl: vinePterodactylImg,
+  mini_toxic_raptor: miniToxicRaptorImg,
+  toxic_utahraptor: toxicUtahraptorImg,
+  venomus: venomusImg,
 } as const;
 
 export const RUN_SHEETS: Record<string, { src: string; frames: number }> = {
@@ -43,6 +55,10 @@ export const RUN_SHEETS: Record<string, { src: string; frames: number }> = {
   mini_frost_raptor: { src: miniFrostRaptorRunImg, frames: 4 },
   frozen_utahraptor: { src: frozenUtahraptorRunImg, frames: 4 },
   glacierus: { src: glacierusRunImg, frames: 4 },
+  vine_pterodactyl: { src: vinePterodactylRunImg, frames: 4 },
+  mini_toxic_raptor: { src: miniToxicRaptorRunImg, frames: 4 },
+  toxic_utahraptor: { src: toxicUtahraptorRunImg, frames: 4 },
+  venomus: { src: venomusRunImg, frames: 4 },
 };
 
 export type Rarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "MYTHIC";
@@ -165,6 +181,28 @@ export const WEAPONS: Record<string, WeaponDef> = {
     rarity: "LEGENDARY",
     description: "Bones + eternal ice. The prize of the Ice World.",
   },
+  venom_bone_axe: {
+    id: "venom_bone_axe",
+    name: "Venom Bone Axe",
+    damage: 38,
+    range: 124,
+    arc: 1.45,
+    cooldown: 0.4,
+    color: "#8ce35a",
+    rarity: "EPIC",
+    description: "Bone dipped in jungle venom. Every hit drips green.",
+  },
+  vine_claw: {
+    id: "vine_claw",
+    name: "Legendary Vine Claw",
+    damage: 58,
+    range: 146,
+    arc: 1.9,
+    cooldown: 0.3,
+    color: "#5ee03c",
+    rarity: "LEGENDARY",
+    description: "Living thorn-vines wrapped in bone. The prize of World 3.",
+  },
 };
 
 export const PETS: Record<string, PetDef> = {
@@ -200,6 +238,137 @@ export const PETS: Record<string, PetDef> = {
     cooldown: 1.7,
     description: "Icy claws that freeze anything they touch.",
   },
+  baby_raptor: {
+    id: "baby_raptor",
+    name: "Baby Raptor",
+    art: miniRaptorImg,
+    damage: 22,
+    cooldown: 1.3,
+    description: "Just hatched. Already grumpy — and surprisingly bitey.",
+  },
+  baby_frost_raptor: {
+    id: "baby_frost_raptor",
+    name: "Baby Frost Raptor",
+    art: miniFrostRaptorImg,
+    damage: 28,
+    cooldown: 1.3,
+    description: "Hatched in a snowdrift. Very cold, very cross.",
+  },
+  baby_toxic_raptor: {
+    id: "baby_toxic_raptor",
+    name: "Baby Toxic Raptor",
+    art: miniToxicRaptorImg,
+    damage: 34,
+    cooldown: 1.3,
+    description: "Hatched in a spore cloud. Sneezes venom.",
+  },
+  ember_pterodactyl: {
+    id: "ember_pterodactyl",
+    name: "Ember Pterodactyl",
+    art: pterodactylImg,
+    damage: 40,
+    cooldown: 1.4,
+    description: "Dives from above trailing burning embers.",
+  },
+  frost_pterodactyl: {
+    id: "frost_pterodactyl",
+    name: "Frost Pterodactyl",
+    art: frostPterodactylImg,
+    damage: 52,
+    cooldown: 1.4,
+    description: "Swoops in on wings of pure frost.",
+  },
+  firesauras: {
+    id: "firesauras",
+    name: "Firesauras",
+    art: firesaurasImg,
+    damage: 120,
+    cooldown: 2.4,
+    description: "The volcano king fights at your side. Enormous damage.",
+  },
+  glacierus: {
+    id: "glacierus",
+    name: "Glacierus",
+    art: glacierusImg,
+    damage: 150,
+    cooldown: 2.4,
+    description: "The ice titan smashes anything you point it at.",
+  },
+  mini_toxic_raptor: {
+    id: "mini_toxic_raptor",
+    name: "Mini Toxic Raptor",
+    art: miniToxicRaptorImg,
+    damage: 62,
+    cooldown: 1.35,
+    description: "Spits venom and bites twice as fast as it should.",
+  },
+  toxic_utahraptor: {
+    id: "toxic_utahraptor",
+    name: "Toxic Utahraptor",
+    art: toxicUtahraptorImg,
+    damage: 96,
+    cooldown: 1.6,
+    description: "Vine-wrapped hunter of the poison forest.",
+  },
+  vine_pterodactyl: {
+    id: "vine_pterodactyl",
+    name: "Vine Pterodactyl",
+    art: vinePterodactylImg,
+    damage: 70,
+    cooldown: 1.4,
+    description: "Hidden jungle-cave treasure. Wings of living vine.",
+  },
+  venomus: {
+    id: "venomus",
+    name: "Venomus",
+    art: venomusImg,
+    damage: 185,
+    cooldown: 2.3,
+    description: "The jungle titan. Ultimate World 3 prize.",
+  },
+};
+
+/** Every pet card maps to a playable pet. */
+export const PET_SPRITE: Record<string, string> = {
+  baby_raptor: "mini_fire_raptor",
+  baby_frost_raptor: "mini_frost_raptor",
+  baby_toxic_raptor: "mini_toxic_raptor",
+  ember_pterodactyl: "pterodactyl",
+  frost_pterodactyl: "frost_pterodactyl",
+  vine_pterodactyl: "vine_pterodactyl",
+};
+
+/** Sprite/run-sheet key used to draw a pet. */
+export const petSpriteKey = (petId: string) => PET_SPRITE[petId] ?? petId;
+
+export const CARD_TO_PET: Record<string, string> = {
+  card_mini_fire_raptor: "mini_fire_raptor",
+  card_fire_utahraptor: "fire_utahraptor",
+  card_baby_raptor: "baby_raptor",
+  card_ember_pterodactyl: "ember_pterodactyl",
+  card_firesauras: "firesauras",
+  card_mini_frost_raptor: "mini_frost_raptor",
+  card_frozen_utahraptor: "frozen_utahraptor",
+  card_baby_frost_raptor: "baby_frost_raptor",
+  card_frost_pterodactyl: "frost_pterodactyl",
+  card_glacierus: "glacierus",
+  card_mini_toxic_raptor: "mini_toxic_raptor",
+  card_toxic_utahraptor: "toxic_utahraptor",
+  card_vine_pterodactyl: "vine_pterodactyl",
+  card_baby_toxic_raptor: "baby_toxic_raptor",
+  card_venomus: "venomus",
+};
+
+/** All pets the player can equip, derived from owned pets + owned pet cards. */
+export const ownedPets = (pets: string[], cards: string[]): PetDef[] => {
+  const ids = new Set<string>(pets);
+  for (const c of cards) {
+    const id = CARD_TO_PET[c];
+    if (id) ids.add(id);
+  }
+  return Array.from(ids)
+    .map((id) => PETS[id])
+    .filter(Boolean) as PetDef[];
 };
 
 /** ---------- BONE FORGE ---------- */
@@ -385,17 +554,103 @@ export const CARDS: Record<string, CardDef> = {
     art: glacierusImg,
     description: "The ice titan. Ultimate World 2 prize.",
   },
+  card_venom_bone_axe: {
+    id: "card_venom_bone_axe",
+    name: "Venom Bone Axe",
+    type: "WEAPON",
+    rarity: "EPIC",
+    art: "",
+    description: "Found in the overgrown Vine Vault.",
+  },
+  card_vine_claw: {
+    id: "card_vine_claw",
+    name: "Legendary Vine Claw",
+    type: "WEAPON",
+    rarity: "LEGENDARY",
+    art: "",
+    description: "Bones + living thorn-vines. The pride of World 3.",
+  },
+  card_vine_pterodactyl: {
+    id: "card_vine_pterodactyl",
+    name: "Vine Pterodactyl",
+    type: "PET",
+    rarity: "RARE",
+    art: vinePterodactylImg,
+    description: "Hidden jungle-cave treasure. Wings of living vine.",
+  },
+  card_baby_toxic_raptor: {
+    id: "card_baby_toxic_raptor",
+    name: "Baby Toxic Raptor",
+    type: "PET",
+    rarity: "COMMON",
+    art: miniToxicRaptorImg,
+    description: "Hatched in a spore cloud. Sneezes venom.",
+  },
+  card_mini_toxic_raptor: {
+    id: "card_mini_toxic_raptor",
+    name: "Mini Toxic Raptor",
+    type: "PET",
+    rarity: "RARE",
+    art: miniToxicRaptorImg,
+    description: "Small, fast and dripping with venom.",
+  },
+  card_toxic_utahraptor: {
+    id: "card_toxic_utahraptor",
+    name: "Toxic Utahraptor",
+    type: "PET",
+    rarity: "EPIC",
+    art: toxicUtahraptorImg,
+    description: "Vine-wrapped hunter of the poison forest.",
+  },
+  card_venomus: {
+    id: "card_venomus",
+    name: "Venomus",
+    type: "PET",
+    rarity: "MYTHIC",
+    art: venomusImg,
+    description: "The jungle titan. Ultimate World 3 prize.",
+  },
 };
 
-export const RARITY_STYLE: Record<Rarity, { border: string; glow: string; text: string; bg: string }> = {
-  COMMON: { border: "#9ca8b4", glow: "rgba(156,168,180,.45)", text: "#cfd8e0", bg: "linear-gradient(160deg,#2b3138,#171a1f)" },
-  RARE: { border: "#43b0ff", glow: "rgba(67,176,255,.5)", text: "#9bd6ff", bg: "linear-gradient(160deg,#12314a,#0d1620)" },
-  EPIC: { border: "#b45cff", glow: "rgba(180,92,255,.55)", text: "#dcaeff", bg: "linear-gradient(160deg,#31174d,#150d20)" },
-  LEGENDARY: { border: "#ffab26", glow: "rgba(255,171,38,.6)", text: "#ffd48a", bg: "linear-gradient(160deg,#4a2a06,#1d1206)" },
-  MYTHIC: { border: "#ff3d5e", glow: "rgba(255,61,94,.65)", text: "#ffb1bf", bg: "linear-gradient(160deg,#54101f,#210610)" },
+export const RARITY_STYLE: Record<
+  Rarity,
+  { border: string; glow: string; text: string; bg: string }
+> = {
+  COMMON: {
+    border: "#9ca8b4",
+    glow: "rgba(156,168,180,.45)",
+    text: "#cfd8e0",
+    bg: "linear-gradient(160deg,#2b3138,#171a1f)",
+  },
+  RARE: {
+    border: "#43b0ff",
+    glow: "rgba(67,176,255,.5)",
+    text: "#9bd6ff",
+    bg: "linear-gradient(160deg,#12314a,#0d1620)",
+  },
+  EPIC: {
+    border: "#b45cff",
+    glow: "rgba(180,92,255,.55)",
+    text: "#dcaeff",
+    bg: "linear-gradient(160deg,#31174d,#150d20)",
+  },
+  LEGENDARY: {
+    border: "#ffab26",
+    glow: "rgba(255,171,38,.6)",
+    text: "#ffd48a",
+    bg: "linear-gradient(160deg,#4a2a06,#1d1206)",
+  },
+  MYTHIC: {
+    border: "#ff3d5e",
+    glow: "rgba(255,61,94,.65)",
+    text: "#ffb1bf",
+    bg: "linear-gradient(160deg,#54101f,#210610)",
+  },
 };
-export const getWeapon = (id: string): WeaponDef => WEAPONS[id] ?? (WEAPONS["bone_sword"] as WeaponDef);
+export const getWeapon = (id: string): WeaponDef =>
+  WEAPONS[id] ?? (WEAPONS["bone_sword"] as WeaponDef);
 export const getCharacter = (id: string): CharacterDef =>
   CHARACTERS[id] ?? (CHARACTERS["rocket_boy"] as CharacterDef);
-export const getPet = (id: string | null | undefined): PetDef | null => (id ? PETS[id] ?? null : null);
+export const getPet = (id: string | null | undefined): PetDef | null =>
+  id ? (PETS[id] ?? null) : null;
 export const getCard = (id: string): CardDef | null => CARDS[id] ?? null;

@@ -15,7 +15,12 @@ export type EnemyType =
   | "snowling"
   | "mini_frost_raptor"
   | "frozen_utahraptor"
-  | "glacierus";
+  | "glacierus"
+  | "vine_pterodactyl"
+  | "sporeling"
+  | "mini_toxic_raptor"
+  | "toxic_utahraptor"
+  | "venomus";
 
 export interface SpawnDef {
   type: EnemyType;
@@ -40,7 +45,7 @@ export interface AreaDef {
   eruptions: number; // seconds between eruptions, 0 = none
   cave_dark?: boolean;
   /** Visual theme for ground, hazard pools and rocks. */
-  theme?: "fire" | "ice";
+  theme?: "fire" | "ice" | "poison";
   /** Clearing this area stores a respawn checkpoint. */
   checkpoint?: boolean;
 }
@@ -173,7 +178,11 @@ export const AREAS: AreaDef[] = [
       { x: 420, y: 300, w: 120, h: 120 },
       { x: 1150, y: 880, w: 140, h: 120 },
     ],
-    bones: [{ x: 500, y: 900 }, { x: 1200, y: 350 }, { x: 850, y: 650 }],
+    bones: [
+      { x: 500, y: 900 },
+      { x: 1200, y: 350 },
+      { x: 850, y: 650 },
+    ],
     waves: [
       [{ type: "mini_fire_raptor", x: 1250, y: 650 }],
       [{ type: "fire_utahraptor", x: 1300, y: 650 }],
@@ -189,7 +198,10 @@ export const AREAS: AreaDef[] = [
     w: 1400,
     h: 1000,
     spawn: { x: 180, y: 500 },
-    lava: [{ x: 640, y: 0, w: 90, h: 300 }, { x: 640, y: 700, w: 90, h: 300 }],
+    lava: [
+      { x: 640, y: 0, w: 90, h: 300 },
+      { x: 640, y: 700, w: 90, h: 300 },
+    ],
     rocks: [],
     bones: [
       ...bonesLine(5, 420, 380, 60, 50),
@@ -249,8 +261,16 @@ export const AREAS: AreaDef[] = [
       { x: 780, y: 300, w: 220, h: 130 },
       { x: 780, y: 980, w: 220, h: 130 },
     ],
-    rocks: [{ x: 500, y: 640, w: 110, h: 110 }, { x: 1250, y: 640, w: 110, h: 110 }],
-    bones: [{ x: 400, y: 400 }, { x: 400, y: 1000 }, { x: 1400, y: 400 }, { x: 1400, y: 1000 }],
+    rocks: [
+      { x: 500, y: 640, w: 110, h: 110 },
+      { x: 1250, y: 640, w: 110, h: 110 },
+    ],
+    bones: [
+      { x: 400, y: 400 },
+      { x: 400, y: 1000 },
+      { x: 1400, y: 400 },
+      { x: 1400, y: 1000 },
+    ],
     waves: [[{ type: "firesauras", x: 1350, y: 700 }]],
     exit: { x: 900, y: 700 },
     eruptions: 7,
