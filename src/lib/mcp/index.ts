@@ -1,8 +1,10 @@
-import { defineMcp, type AnyToolDefinition } from "@lovable.dev/mcp-js";
+import { defineMcp } from "@lovable.dev/mcp-js";
 import listWorlds from "./tools/list-worlds";
 import getArea from "./tools/get-area";
 import listCollection from "./tools/list-collection";
 import listBoneForge from "./tools/list-bone-forge";
+
+type Tools = Parameters<typeof defineMcp>[0]["tools"];
 
 export default defineMcp({
   name: "dino-quest-saga",
@@ -10,5 +12,5 @@ export default defineMcp({
   version: "0.1.0",
   instructions:
     "Read-only tools for the Dino Quest browser game. Use `list_worlds` for the world list, `get_area` for a level's layout and enemy waves, `list_collection` for characters, weapons, pets and cards, and `list_bone_forge` for the bone upgrade shop.",
-  tools: [listWorlds, getArea, listCollection, listBoneForge] as AnyToolDefinition[],
+  tools: [listWorlds, getArea, listCollection, listBoneForge] as unknown as Tools,
 });
