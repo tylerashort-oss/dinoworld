@@ -175,17 +175,19 @@ export function GameScreen({
           });
         } else if (ev.id === "firesauras") {
           const ids = ["card_firesauras", "card_fire_claw"];
+          const lastIdx = getAreas(1).length - 1;
           update((s) => ({
             ...s,
             cards: Array.from(new Set([...s.cards, ...ids])),
             weapons: Array.from(new Set([...s.weapons, "fire_claw"])),
             equippedWeapon: "fire_claw",
-            bones: s.bones + 300,
+            progress: { ...s.progress, "1": Math.max(s.progress?.["1"] ?? 0, lastIdx) },
+            checkpoints: { ...s.checkpoints, "1": Math.max(s.checkpoints?.["1"] ?? 0, lastIdx) },
             world1Complete: true,
             world2Unlocked: true,
           }));
           eng.setWeapon("fire_claw");
-          eng.setBones(s0.bones + 300);
+          eng.addBonusBones(300);
           setReward({
             title: "FIRESAURAS DEFEATED!",
             subtitle: "MYTHIC card + LEGENDARY FIRE CLAW + 300 bones!",
@@ -195,17 +197,19 @@ export function GameScreen({
           });
         } else if (ev.id === "glacierus") {
           const ids = ["card_glacierus", "card_ice_claw"];
+          const lastIdx = getAreas(2).length - 1;
           update((s) => ({
             ...s,
             cards: Array.from(new Set([...s.cards, ...ids])),
             weapons: Array.from(new Set([...s.weapons, "ice_claw"])),
             equippedWeapon: "ice_claw",
-            bones: s.bones + 450,
+            progress: { ...s.progress, "2": Math.max(s.progress?.["2"] ?? 0, lastIdx) },
+            checkpoints: { ...s.checkpoints, "2": Math.max(s.checkpoints?.["2"] ?? 0, lastIdx) },
             world2Complete: true,
             world3Unlocked: true,
           }));
           eng.setWeapon("ice_claw");
-          eng.setBones(s0.bones + 450);
+          eng.addBonusBones(450);
           setReward({
             title: "GLACIERUS DEFEATED!",
             subtitle: "MYTHIC card + LEGENDARY ICE CLAW + 450 bones!",
@@ -215,17 +219,19 @@ export function GameScreen({
           });
         } else if (ev.id === "venomus") {
           const ids = ["card_venomus", "card_vine_claw"];
+          const lastIdx = getAreas(3).length - 1;
           update((s) => ({
             ...s,
             cards: Array.from(new Set([...s.cards, ...ids])),
             pets: Array.from(new Set([...s.pets, "venomus"])),
             weapons: Array.from(new Set([...s.weapons, "vine_claw"])),
             equippedWeapon: "vine_claw",
-            bones: s.bones + 600,
+            progress: { ...s.progress, "3": Math.max(s.progress?.["3"] ?? 0, lastIdx) },
+            checkpoints: { ...s.checkpoints, "3": Math.max(s.checkpoints?.["3"] ?? 0, lastIdx) },
             world3Complete: true,
           }));
           eng.setWeapon("vine_claw");
-          eng.setBones(s0.bones + 600);
+          eng.addBonusBones(600);
           setReward({
             title: "VENOMUS DEFEATED!",
             subtitle: "MYTHIC card + LEGENDARY VINE CLAW + 600 bones!",
