@@ -706,6 +706,7 @@ export class GameEngine {
     this.opts.onHud({
       hp: Math.max(0, Math.round(this.hp)),
       maxHp: this.maxHp,
+      shield: this.shield,
       bones: this.bones,
       areaName: this.area.name,
       areaSubtitle: this.area.subtitle,
@@ -727,6 +728,7 @@ export class GameEngine {
     for (const s of wave) {
       const st = ENEMY_STATS[s.type]!;
       const runSheet = RUN_SHEETS[st.sprite];
+      const hp = Math.round(st.hp * this.difficulty);
       this.enemies.push({
         type: s.type,
         x: s.x,
@@ -734,8 +736,8 @@ export class GameEngine {
         z: st.flying ? 70 : 0,
         vx: 0,
         vy: 0,
-        hp: st.hp,
-        maxHp: st.hp,
+        hp,
+        maxHp: hp,
         radius: st.radius,
         size: st.size,
         speed: st.speed,
@@ -753,7 +755,7 @@ export class GameEngine {
         facing: -1,
         enraged: false,
         dashTimer: 2,
-        bones: st.bones,
+        bones: Math.round(st.bones * this.difficulty),
       });
       if (st.boss) {
         playSfx("boss");
@@ -1107,9 +1109,10 @@ export class GameEngine {
       vx: Math.cos(ang) * speed,
       vy: Math.sin(ang) * speed,
       r: 13,
-      dmg,
+      dmg: Math.round(dmg * (1 + (this.difficulty - 1) * 0.35)),
       life: 4,
       fromPlayer: false,
+      ice: this.isIce,
     });
   }
 
