@@ -22,6 +22,10 @@ export interface SaveData {
   world2Unlocked: boolean;
   world2Complete: boolean;
   world3Unlocked: boolean;
+  /** Bone Forge upgrade levels. */
+  upgrades: Record<string, number>;
+  /** Spare lives bought with bones. */
+  extraLives: number;
   sound: boolean;
   keybinds: Keybinds;
   joystickSize: number;
@@ -32,7 +36,7 @@ const KEY = "dinoquest.save.v1";
 
 export function defaultSave(): SaveData {
   return {
-    version: 2,
+    version: 3,
     started: false,
     character: "rocket_boy",
     bones: 0,
@@ -49,6 +53,8 @@ export function defaultSave(): SaveData {
     world2Unlocked: false,
     world2Complete: false,
     world3Unlocked: false,
+    upgrades: { maxHp: 0, damage: 0, petPower: 0 },
+    extraLives: 0,
     sound: true,
     keybinds: defaultKeybinds(),
     joystickSize: 210,
@@ -66,6 +72,8 @@ export function loadSave(): SaveData {
     merged.keybinds = normalizeKeybinds(parsed.keybinds);
     merged.progress = { "1": 0, "2": 0, ...(parsed.progress ?? {}) };
     merged.checkpoints = { "1": 0, "2": 0, ...(parsed.checkpoints ?? {}) };
+    merged.upgrades = { maxHp: 0, damage: 0, petPower: 0, ...(parsed.upgrades ?? {}) };
+    merged.extraLives = parsed.extraLives ?? 0;
     if (!merged.world) merged.world = 1;
     if (!merged.joystickSize) merged.joystickSize = 210;
     return merged;

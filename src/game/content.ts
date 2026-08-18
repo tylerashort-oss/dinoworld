@@ -172,35 +172,81 @@ export const PETS: Record<string, PetDef> = {
     id: "mini_fire_raptor",
     name: "Mini Fire Raptor",
     art: miniRaptorImg,
-    damage: 16,
-    cooldown: 2.2,
+    damage: 34,
+    cooldown: 1.5,
     description: "Lunges at the nearest enemy in a streak of flame.",
   },
   fire_utahraptor: {
     id: "fire_utahraptor",
     name: "Fire Utahraptor",
     art: utahraptorImg,
-    damage: 30,
-    cooldown: 2.6,
+    damage: 60,
+    cooldown: 1.8,
     description: "A huge ally raptor that shreds anything nearby.",
   },
   mini_frost_raptor: {
     id: "mini_frost_raptor",
     name: "Mini Frost Raptor",
     art: miniFrostRaptorImg,
-    damage: 22,
-    cooldown: 2.1,
+    damage: 46,
+    cooldown: 1.4,
     description: "Darts at enemies in a spray of snow.",
   },
   frozen_utahraptor: {
     id: "frozen_utahraptor",
     name: "Frozen Utahraptor",
     art: frozenUtahraptorImg,
-    damage: 38,
-    cooldown: 2.5,
+    damage: 78,
+    cooldown: 1.7,
     description: "Icy claws that freeze anything they touch.",
   },
 };
+
+/** ---------- BONE FORGE ---------- */
+export type UpgradeId = "maxHp" | "damage" | "petPower";
+
+export interface UpgradeDef {
+  id: UpgradeId;
+  name: string;
+  emoji: string;
+  description: string;
+  baseCost: number;
+  max: number;
+}
+
+export const UPGRADES: UpgradeDef[] = [
+  {
+    id: "maxHp",
+    name: "Tough Hide",
+    emoji: "❤️",
+    description: "+25 max health, every level.",
+    baseCost: 60,
+    max: 8,
+  },
+  {
+    id: "damage",
+    name: "Sharper Bones",
+    emoji: "⚔️",
+    description: "+10% weapon damage, every level.",
+    baseCost: 80,
+    max: 10,
+  },
+  {
+    id: "petPower",
+    name: "Pet Training",
+    emoji: "🦖",
+    description: "+20% pet damage, every level.",
+    baseCost: 70,
+    max: 8,
+  },
+];
+
+export const EXTRA_LIFE_COST = 150;
+export const CARD_PACK_COST = 200;
+
+/** Cost of the next level of an upgrade. Pink Explorer gets a 25% discount. */
+export const upgradeCost = (def: UpgradeDef, level: number, discount = 0) =>
+  Math.max(10, Math.round(def.baseCost * Math.pow(1.55, level) * (1 - discount)));
 
 export const CARDS: Record<string, CardDef> = {
   card_rocket_boy: {

@@ -1,5 +1,17 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, PETS, WEAPONS, getCharacter, getCard, type CardType } from "@/game/content";
+import {
+  CARDS,
+  CARD_PACK_COST,
+  CHARACTERS,
+  EXTRA_LIFE_COST,
+  PETS,
+  UPGRADES,
+  WEAPONS,
+  getCharacter,
+  getCard,
+  upgradeCost,
+  type CardType,
+} from "@/game/content";
 import { WORLDS } from "@/game/worlds";
 import { ACTIONS, keyLabel, rebind, defaultKeybinds, type ActionId } from "@/game/keybinds";
 import type { SaveData } from "@/game/save";
@@ -100,7 +112,7 @@ export function WorldMap({
 }: {
   save: SaveData;
   setSave: (fn: (s: SaveData) => SaveData) => void;
-  onPlay: (worldId: number) => void;
+  onPlay: (worldId: number, areaIndex?: number) => void;
   onCamp: () => void;
   onCollection: () => void;
   onSettings: () => void;
@@ -148,21 +160,30 @@ export function WorldMap({
               </div>
               <ol className="mt-3 space-y-1 text-xs">
                 {w.areas.map((a, i) => (
-                  <li
-                    key={a.id}
-                    className={
-                      unlocked && i === at
-                        ? "font-black text-primary"
-                        : unlocked && i < at
-                          ? "text-emerald-400"
-                          : "text-muted-foreground"
-                    }
-                  >
-                    {unlocked && i < at ? "✔" : unlocked && i === at ? "▶" : "•"} {a.name}
-                    {a.checkpoint ? " ⛳" : ""}
+                  <li key={a.id}>
+                    <button
+                      disabled={!unlocked || !(complete || i <= (save.progress?.[key] ?? 0))}
+                      onClick={() => onPlay(w.id, i)}
+                      className={`w-full rounded-lg px-2 py-1 text-left disabled:opacity-60 ${
+                        unlocked && i === at
+                          ? "bg-primary/20 font-black text-primary"
+                          : unlocked && i < at
+                            ? "text-emerald-400 hover:bg-white/5"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {unlocked && i < at ? "✔" : unlocked && i === at ? "▶" : "•"} {a.name}
+                      {a.checkpoint ? " ⛳" : ""}
+                      {(complete || i < at) && unlocked ? " · REPLAY" : ""}
+                    </button>
                   </li>
                 ))}
               </ol>
+              {complete && (
+                <p className="mt-2 text-[10px] font-bold text-emerald-300">
+                  World complete — tap any level above to replay it.
+                </p>
+              )}
               <button
                 disabled={!unlocked}
                 onClick={() => onPlay(w.id)}
@@ -286,11 +307,136 @@ export function DinoCamp({
           </button>
         </div>
       </div>
+
+      <BoneForge save={save} setSave={setSave} />
     </Shell>
   );
 }
 
-export function Collection({ save, onBack }: { save: SaveData; onBack: () => void }) {
+function BoneForge({
+  save,
+  setSave,
+}: {
+  save: SaveData;
+  setSave: (fn: (s: SaveData) => SaveData) => void;
+}) {
+  const pink = save.character === "pink_explorer";
+  const discount = pink ? 0.25 : 0;
+  const levels = save.upgrades ?? {};
+
+  const buy = (id: string, cost: number) =>
+    setSave((s) => {
+      if (s.bones < cost) return s;
+      return {
+        ...s,
+        bones: s.bones - cost,
+        upgrades: { ...s.upgrades, [id]: (s.upgrades?.[id] ?? 0) + 1 },
+      };
+    });
+
+  const buyLife = () =>
+    setSave((s) =>
+      s.bones < Math.round(EXTRA_LIFE_COST * (1 - discount))
+        ? s
+        : {
+            ...s,
+            bones: s.bones - Math.round(EXTRA_LIFE_COST * (1 - discount)),
+            extraLives: (s.extraLives ?? 0) + 1,
+          },
+    );
+
+  const packCost = Math.round(CARD_PACK_COST * (1 - discount));
+  const buyPack = () =>
+    setSave((s) => {
+      if (s.bones < packCost) return s;
+      const missing = Object.values(CARDS).filter((c) => !s.cards.includes(c.id));
+      if (missing.length === 0) return s;
+      const pick = missing[Math.floor(Math.random() * missing.length)]!;
+      return { ...s, bones: s.bones - packCost, cards: [...s.cards, pick.id] };
+    });
+
+  return (
+    <div className={`${panel} mt-4`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-xs font-black tracking-widest text-amber-300">🔥 BONE FORGE</div>
+          <p className="text-xs text-muted-foreground">
+            Spend your bones on permanent upgrades. They work in every world, forever.
+          </p>
+        </div>
+        <div className="text-2xl font-black text-amber-200">🦴 {save.bones}</div>
+      </div>
+      {pink && (
+        <p className="mt-2 rounded-lg bg-pink-500/15 px-3 py-2 text-[11px] font-bold text-pink-200">
+          Pink Explorer perk: +50% bones, 25% cheaper forge prices, a shield each level, double pet strikes and a
+          bigger bone magnet.
+        </p>
+      )}
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        {UPGRADES.map((u) => {
+          const lvl = levels[u.id] ?? 0;
+          const maxed = lvl >= u.max;
+          const cost = upgradeCost(u, lvl, discount);
+          return (
+            <div key={u.id} className="rounded-xl border-2 border-border bg-black/30 p-3">
+              <div className="text-sm font-black text-foreground">
+                {u.emoji} {u.name}
+              </div>
+              <div className="text-[11px] text-muted-foreground">{u.description}</div>
+              <div className="mt-1 text-[11px] font-bold text-primary">
+                LEVEL {lvl} / {u.max}
+              </div>
+              <button
+                disabled={maxed || save.bones < cost}
+                onClick={() => buy(u.id, cost)}
+                className="mt-2 w-full rounded-lg bg-primary py-2 text-sm font-black text-primary-foreground disabled:opacity-40"
+              >
+                {maxed ? "MAXED OUT" : `UPGRADE · 🦴 ${cost}`}
+              </button>
+            </div>
+          );
+        })}
+        <div className="rounded-xl border-2 border-border bg-black/30 p-3">
+          <div className="text-sm font-black text-foreground">💖 Extra Life</div>
+          <div className="text-[11px] text-muted-foreground">
+            Get back up right where you fell instead of returning to the checkpoint.
+          </div>
+          <div className="mt-1 text-[11px] font-bold text-primary">IN STOCK: {save.extraLives ?? 0}</div>
+          <button
+            disabled={save.bones < Math.round(EXTRA_LIFE_COST * (1 - discount))}
+            onClick={buyLife}
+            className="mt-2 w-full rounded-lg bg-emerald-500 py-2 text-sm font-black text-black disabled:opacity-40"
+          >
+            BUY · 🦴 {Math.round(EXTRA_LIFE_COST * (1 - discount))}
+          </button>
+        </div>
+        <div className="rounded-xl border-2 border-border bg-black/30 p-3">
+          <div className="text-sm font-black text-foreground">🃏 Card Pack</div>
+          <div className="text-[11px] text-muted-foreground">
+            Trade bones for a card you have not collected yet.
+          </div>
+          <button
+            disabled={save.bones < packCost}
+            onClick={buyPack}
+            className="mt-2 w-full rounded-lg bg-sky-500 py-2 text-sm font-black text-black disabled:opacity-40"
+          >
+            OPEN PACK · 🦴 {packCost}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function Collection({
+  save,
+  setSave,
+  onBack,
+}: {
+  save: SaveData;
+  setSave: (fn: (s: SaveData) => SaveData) => void;
+  onBack: () => void;
+}) {
   const [tab, setTab] = useState<CardType>("CHARACTER");
   const owned = save.cards.map(getCard).filter(Boolean);
   const all = Object.values(CARDS).filter((c) => c.type === tab);
@@ -311,6 +457,38 @@ export function Collection({ save, onBack }: { save: SaveData; onBack: () => voi
           </button>
         ))}
       </div>
+      {tab === "PET" && (
+        <div className={`${panel} mt-4`}>
+          <div className="text-xs font-black tracking-widest text-amber-300">🦖 CHOOSE YOUR PET</div>
+          {save.pets.length === 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              No pets yet — beat a mini boss to make it join you.
+            </p>
+          ) : (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {save.pets.map((id) => {
+                const p = PETS[id];
+                if (!p) return null;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setSave((s) => ({ ...s, equippedPet: s.equippedPet === id ? null : id }))}
+                    className={`flex items-center gap-2 rounded-xl border-2 p-2 text-left ${save.equippedPet === id ? "border-primary bg-primary/20" : "border-border bg-black/30"}`}
+                  >
+                    <img src={p.art} alt={p.name} className="h-12 w-12 object-contain" />
+                    <div>
+                      <div className="text-xs font-black">{p.name}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        DMG {p.damage} · {save.equippedPet === id ? "EQUIPPED" : "tap to equip"}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
       <div className="mt-4 flex flex-wrap gap-3 pb-8">
         {all.map((c) =>
           owned.some((o) => o?.id === c.id) ? (

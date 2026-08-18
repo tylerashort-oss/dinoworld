@@ -7,6 +7,7 @@ import { playSfx } from "./audio";
 export interface HudState {
   hp: number;
   maxHp: number;
+  shield: number;
   bones: number;
   areaName: string;
   areaSubtitle: string;
@@ -42,6 +43,16 @@ interface EngineOpts {
   openedChest: boolean;
   foundCaves: Record<string, boolean>;
   keybinds?: Keybinds;
+  /** Enemy health / count scaling for the world (1 = Volcanic Lands, 2 = Ice World...). */
+  difficulty?: number;
+  /** Bone Forge upgrades. */
+  damageMul?: number;
+  petMul?: number;
+  bonusMaxHp?: number;
+  /** Pink Explorer perks. */
+  petHits?: number;
+  magnet?: number;
+  shield?: number;
   onHud: (h: HudState) => void;
   onEvent: (e: GameEvent) => void;
 }
@@ -89,6 +100,7 @@ interface Projectile {
   dmg: number;
   life: number;
   fromPlayer: boolean;
+  ice: boolean;
 }
 
 interface Particle {
@@ -195,6 +207,13 @@ export class GameEngine {
   private runPhase = 0;
   private runSpeed = 0;
   private runFrames = 1;
+  private difficulty = 1;
+  private damageMul = 1;
+  private petMul = 1;
+  private petHits = 1;
+  private magnet = 46;
+  private shieldMax = 0;
+  private shield = 0;
 
   private weaponId: string;
   private petId: string | null;
@@ -202,6 +221,9 @@ export class GameEngine {
   // pet
   private petX = 0;
   private petY = 0;
+  private petPhase = 0;
+  private petFacing = 1;
+  private petAutoCd = 2;
 
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
@@ -242,6 +264,14 @@ export class GameEngine {
     const ch = getCharacter(opts.characterId);
     this.speedMul = ch.speed;
     this.lootBonus = ch.lootBonus;
+    this.difficulty = opts.difficulty ?? 1;
+    this.damageMul = opts.damageMul ?? 1;
+    this.petMul = opts.petMul ?? 1;
+    this.petHits = opts.petHits ?? 1;
+    this.magnet = opts.magnet ?? 46;
+    this.shieldMax = opts.shield ?? 0;
+    this.maxHp = 100 + (opts.bonusMaxHp ?? 0);
+    this.hp = this.maxHp;
     this.preload(opts.characterId);
     this.loadArea(this.areaIndex);
     window.addEventListener("keydown", this.onKeyDown);
@@ -319,7 +349,10 @@ export class GameEngine {
     this.pvz = 0;
     this.petX = this.px - 50;
     this.petY = this.py + 30;
+    this.petPhase = 0;
+    this.petAutoCd = 2;
     this.hp = this.maxHp;
+    this.shield = this.shieldMax;
     this.dead = false;
     this.invuln = 1;
     this.attackCd = 0;
@@ -421,6 +454,7 @@ export class GameEngine {
     const w = getWeapon(this.weaponId);
     this.attackCd = w.cooldown;
     this.attackAnim = 0.22;
+    const wDamage = Math.round(w.damage * this.damageMul);
     playSfx("attack");
     // Kid-friendly auto-aim: if an enemy is in reach, swing at the closest one.
     const assist = this.nearestEnemy(this.px, this.py);
@@ -456,7 +490,7 @@ export class GameEngine {
       let diff = Math.abs(((a - ang + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
       diff = Math.abs(diff);
       if (diff > w.arc) continue;
-      this.damageEnemy(e, w.damage + Math.floor(Math.random() * 4));
+      this.damageEnemy(e, wDamage + Math.floor(Math.random() * 4));
       hitAny = true;
     }
     // chest can be "hit" open too
@@ -472,9 +506,10 @@ export class GameEngine {
       vx: Math.cos(ang) * 720,
       vy: Math.sin(ang) * 720,
       r: 12,
-      dmg: Math.max(4, Math.round(w.damage * 0.6)),
+      dmg: Math.max(4, Math.round(wDamage * 0.6)),
       life: 1.4,
       fromPlayer: true,
+      ice: this.isIce,
     });
   }
 
@@ -487,11 +522,27 @@ export class GameEngine {
 
   petAttack() {
     if (this.dead || this.paused || !this.petId || this.petCd > 0) return;
+    this.petStrike();
+  }
+
+  /** Stand back up on the spot after spending an extra life. */
+  revive() {
+    this.dead = false;
+    this.hp = this.maxHp;
+    this.shield = this.shieldMax;
+    this.invuln = 2.5;
+    this.banner("EXTRA LIFE USED!");
+  }
+
+  /** The pet lunges at the nearest enemy and claws it. */
+  private petStrike() {
+    if (this.dead || !this.petId) return;
     const pet = getPet(this.petId);
     if (!pet) return;
     const target = this.nearestEnemy(this.petX, this.petY);
     if (!target) return;
     this.petCd = pet.cooldown;
+    this.petAutoCd = pet.cooldown * 1.9;
     // pet lunges: instant strike + flame trail
     const steps = 14;
     for (let i = 0; i < steps; i++) {
@@ -503,13 +554,17 @@ export class GameEngine {
         vy: (Math.random() - 0.5) * 40,
         life: 0.4,
         maxLife: 0.4,
-        color: "#ff8a2b",
+        color: this.isIce ? "#8fe4ff" : "#ff8a2b",
         size: 8,
       });
     }
     this.petX = target.x - 40;
     this.petY = target.y + 20;
-    this.damageEnemy(target, pet.damage + Math.floor(Math.random() * 6));
+    const hit = Math.round(pet.damage * this.petMul);
+    for (let i = 0; i < this.petHits; i++) {
+      if (target.hp <= 0) break;
+      this.damageEnemy(target, hit + Math.floor(Math.random() * 6));
+    }
     playSfx("hit");
   }
 
@@ -542,7 +597,7 @@ export class GameEngine {
         vy: (Math.random() - 0.5) * 220,
         life: 0.35,
         maxLife: 0.35,
-        color: i % 2 ? "#ffd166" : "#ff5b2e",
+        color: this.isIce ? (i % 2 ? "#d8f4ff" : "#57bdf5") : i % 2 ? "#ffd166" : "#ff5b2e",
         size: 5 + Math.random() * 4,
       });
     }
@@ -559,7 +614,17 @@ export class GameEngine {
         vy: (Math.random() - 0.5) * 320,
         life: 0.7,
         maxLife: 0.7,
-        color: i % 3 === 0 ? "#ffffff" : i % 3 === 1 ? "#ff9e2c" : "#ff3d2e",
+        color: this.isIce
+          ? i % 3 === 0
+            ? "#ffffff"
+            : i % 3 === 1
+              ? "#7fd7ff"
+              : "#2f8ed6"
+          : i % 3 === 0
+            ? "#ffffff"
+            : i % 3 === 1
+              ? "#ff9e2c"
+              : "#ff3d2e",
         size: 6 + Math.random() * 6,
       });
     }
@@ -660,6 +725,7 @@ export class GameEngine {
     this.opts.onHud({
       hp: Math.max(0, Math.round(this.hp)),
       maxHp: this.maxHp,
+      shield: this.shield,
       bones: this.bones,
       areaName: this.area.name,
       areaSubtitle: this.area.subtitle,
@@ -681,6 +747,7 @@ export class GameEngine {
     for (const s of wave) {
       const st = ENEMY_STATS[s.type]!;
       const runSheet = RUN_SHEETS[st.sprite];
+      const hp = Math.round(st.hp * this.difficulty);
       this.enemies.push({
         type: s.type,
         x: s.x,
@@ -688,8 +755,8 @@ export class GameEngine {
         z: st.flying ? 70 : 0,
         vx: 0,
         vy: 0,
-        hp: st.hp,
-        maxHp: st.hp,
+        hp,
+        maxHp: hp,
         radius: st.radius,
         size: st.size,
         speed: st.speed,
@@ -707,7 +774,7 @@ export class GameEngine {
         facing: -1,
         enraged: false,
         dashTimer: 2,
-        bones: st.bones,
+        bones: Math.round(st.bones * this.difficulty),
       });
       if (st.boss) {
         playSfx("boss");
@@ -828,8 +895,31 @@ export class GameEngine {
     if (this.petId) {
       const tx = this.px - this.facing * 62;
       const ty = this.py + 34;
+      const ppx = this.petX;
+      const ppy = this.petY;
       this.petX += (tx - this.petX) * Math.min(1, dt * 4);
       this.petY += (ty - this.petY) * Math.min(1, dt * 4);
+      const pmoved = Math.hypot(this.petX - ppx, this.petY - ppy);
+      if (pmoved > 0.15) {
+        const prev = this.petPhase;
+        this.petPhase += pmoved / 34;
+        if (Math.abs(this.petX - ppx) > 0.2) this.petFacing = this.petX > ppx ? 1 : -1;
+        if (Math.floor(prev * 4) !== Math.floor(this.petPhase * 4)) {
+          this.particles.push({
+            x: this.petX - this.petFacing * 10,
+            y: this.petY + 8,
+            vx: -this.petFacing * (20 + Math.random() * 25),
+            vy: -18 - Math.random() * 20,
+            life: 0.28,
+            maxLife: 0.28,
+            color: this.isIce ? "rgba(220,240,255,.6)" : "rgba(255,200,150,.5)",
+            size: 4 + Math.random() * 3,
+          });
+        }
+      }
+      // pets fight on their own too, so they always help
+      this.petAutoCd -= dt;
+      if (this.petAutoCd <= 0 && this.petCd <= 0) this.petStrike();
     }
 
     // ---- enemies
@@ -942,7 +1032,7 @@ export class GameEngine {
           vy: 0,
           life: 0.25,
           maxLife: 0.25,
-          color: "#ff9d2e",
+          color: p.ice ? "#9fe6ff" : "#ff9d2e",
           size: p.r * 1.2,
         });
       if (!p.fromPlayer && this.pz < 34 && dist(p.x, p.y, this.px, this.py) < p.r + 20) {
@@ -968,7 +1058,7 @@ export class GameEngine {
     for (const b of this.pickups) {
       if (b.taken) continue;
       b.bob += dt * 4;
-      if (dist(b.x, b.y, this.px, this.py) < 46) {
+      if (dist(b.x, b.y, this.px, this.py) < this.magnet) {
         b.taken = true;
         this.addBones(Math.round(1 + this.lootBonus));
         playSfx("bone");
@@ -1061,15 +1151,34 @@ export class GameEngine {
       vx: Math.cos(ang) * speed,
       vy: Math.sin(ang) * speed,
       r: 13,
-      dmg,
+      dmg: Math.round(dmg * (1 + (this.difficulty - 1) * 0.35)),
       life: 4,
       fromPlayer: false,
+      ice: this.isIce,
     });
   }
 
   private hurtPlayer(dmg: number, continuous = false) {
     if (this.dead) return;
     if (!continuous && this.invuln > 0) return;
+    if (!continuous && this.shield > 0) {
+      this.shield -= 1;
+      this.invuln = 1.2;
+      this.banner("SHIELD BLOCKED THE HIT!");
+      playSfx("hurt");
+      for (let i = 0; i < 18; i++)
+        this.particles.push({
+          x: this.px,
+          y: this.py - 20,
+          vx: (Math.random() - 0.5) * 320,
+          vy: (Math.random() - 0.5) * 320,
+          life: 0.5,
+          maxLife: 0.5,
+          color: i % 2 ? "#ffd1f0" : "#ff7ad1",
+          size: 6,
+        });
+      return;
+    }
     this.hp -= dmg;
     if (!continuous) {
       this.invuln = 0.85;
@@ -1634,8 +1743,16 @@ export class GameEngine {
     if (!this.petId) return;
     const pet = getPet(this.petId);
     if (!pet) return;
-    const img = this.images[this.petId] ?? null;
-    this.drawSprite(ctx, img, this.petX, this.petY, 0, 78, this.facing);
+    const sheet = this.images[`${this.petId}__run`] ?? null;
+    const frames = RUN_SHEETS[this.petId]?.frames ?? 4;
+    const ready = !!sheet && sheet.complete && sheet.naturalWidth > 0;
+    const bob = Math.abs(Math.sin(this.petPhase * Math.PI * 2)) * 4;
+    if (ready) {
+      const index = Math.floor(this.petPhase * frames) % frames;
+      this.drawSprite(ctx, sheet, this.petX, this.petY, bob, 78, this.petFacing, 0, { index, count: frames });
+    } else {
+      this.drawSprite(ctx, this.images[this.petId] ?? null, this.petX, this.petY, bob, 78, this.petFacing);
+    }
   }
 
   private drawPlayer(ctx: CanvasRenderingContext2D) {
@@ -1683,13 +1800,32 @@ export class GameEngine {
     for (const p of this.projectiles) {
       ctx.save();
       const g = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, p.r * 2.2);
-      g.addColorStop(0, "#fff6c9");
-      g.addColorStop(0.4, "#ffa42b");
-      g.addColorStop(1, "rgba(255,60,0,0)");
+      if (p.ice) {
+        g.addColorStop(0, "#f2fdff");
+        g.addColorStop(0.4, "#63cbff");
+        g.addColorStop(1, "rgba(20,120,220,0)");
+      } else {
+        g.addColorStop(0, "#fff6c9");
+        g.addColorStop(0.4, "#ffa42b");
+        g.addColorStop(1, "rgba(255,60,0,0)");
+      }
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r * 2.2, 0, Math.PI * 2);
       ctx.fill();
+      if (p.ice) {
+        // frost shard
+        ctx.translate(p.x, p.y);
+        ctx.rotate(Math.atan2(p.vy, p.vx));
+        ctx.fillStyle = "#dff6ff";
+        ctx.beginPath();
+        ctx.moveTo(p.r * 1.4, 0);
+        ctx.lineTo(-p.r * 0.6, p.r * 0.55);
+        ctx.lineTo(-p.r * 0.2, 0);
+        ctx.lineTo(-p.r * 0.6, -p.r * 0.55);
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.restore();
     }
   }

@@ -207,6 +207,8 @@ export function GameScreen({
     if (!canvas) return;
     setSoundEnabled(saveRef.current.sound);
     const s = saveRef.current;
+    const pink = s.character === "pink_explorer";
+    const up = s.upgrades ?? {};
     const engine = new GameEngine({
       canvas,
       characterId: s.character,
@@ -218,6 +220,13 @@ export function GameScreen({
       openedChest: !!s.flags[(s.world ?? 1) === 2 ? "iceChestOpened" : "chestOpened"],
       foundCaves: {},
       keybinds: s.keybinds,
+      difficulty: s.world ?? 1,
+      bonusMaxHp: (up["maxHp"] ?? 0) * 25,
+      damageMul: 1 + (up["damage"] ?? 0) * 0.1,
+      petMul: 1 + (up["petPower"] ?? 0) * 0.2,
+      petHits: pink ? 2 : 1,
+      magnet: pink ? 110 : 46,
+      shield: pink ? 1 : 0,
       onHud: setHud,
       onEvent: (e) => handleEvent.current(e),
     });
@@ -252,6 +261,12 @@ export function GameScreen({
     engineRef.current?.loadArea(cp);
   };
 
+  const reviveHere = () => {
+    setDead(false);
+    update((s) => ({ ...s, extraLives: Math.max(0, (s.extraLives ?? 0) - 1) }));
+    engineRef.current?.revive();
+  };
+
   const weapon = getWeapon(save.equippedWeapon);
   const checkpointArea = areas[save.checkpoints?.[worldKey] ?? 0];
 
@@ -271,6 +286,7 @@ export function GameScreen({
               />
             </div>
             <span className="text-xs font-bold text-foreground">{hud?.hp ?? 100}</span>
+            {hud && hud.shield > 0 && <span className="text-lg">🛡️</span>}
           </div>
           <div className="flex items-center gap-2 rounded-full bg-black/55 px-3 py-1 text-sm font-extrabold text-foreground">
             🦴 {save.bones}
@@ -377,6 +393,14 @@ export function GameScreen({
             CHECKPOINT: {checkpointArea?.name ?? areas[0]?.name}
           </p>
           <div className="mt-6 flex gap-3">
+            {(save.extraLives ?? 0) > 0 && (
+              <button
+                onClick={reviveHere}
+                className="rounded-xl bg-emerald-500 px-6 py-3 text-lg font-black text-black"
+              >
+                💖 USE EXTRA LIFE ({save.extraLives})
+              </button>
+            )}
             <button
               onClick={respawnAtCheckpoint}
               className="rounded-xl bg-primary px-8 py-3 text-lg font-black text-primary-foreground"
