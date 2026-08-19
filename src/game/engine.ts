@@ -627,6 +627,7 @@ export class GameEngine {
     this.petY = this.py + 30;
     this.petPhase = 0;
     this.petAutoCd = 2;
+    this.resetPetVitals();
     this.hp = this.maxHp;
     this.shield = this.shieldMax;
     this.dead = false;
