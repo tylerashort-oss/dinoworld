@@ -1263,12 +1263,7 @@ export class GameEngine {
       const ang = Math.atan2(this.py - e.y, this.px - e.x);
       e.facing = this.px > e.x ? 1 : -1;
 
-      if (
-        e.boss &&
-        (e.type === "firesauras" || e.type === "glacierus" || e.type === "venomus") &&
-        !e.enraged &&
-        e.hp < e.maxHp * 0.5
-      ) {
+      if (e.kind === "titan" && !e.enraged && e.hp < e.maxHp * 0.5) {
         e.enraged = true;
         e.speed = e.speed * 1.5;
         this.banner(`${e.name} IS ENRAGED!`);
@@ -1285,7 +1280,7 @@ export class GameEngine {
           e.shootTimer = 2.2;
           this.shoot(e.x, e.y, ang, 260, 9);
         }
-      } else if (e.type === "firesauras" || e.type === "glacierus" || e.type === "venomus") {
+      } else if (e.kind === "titan") {
         const spd = e.speed * (d > 170 ? 1 : 0);
         e.x += Math.cos(ang) * spd * dt;
         e.y += Math.sin(ang) * spd * dt;
@@ -1302,7 +1297,7 @@ export class GameEngine {
       } else {
         // chasers: fireling, mini raptor, utahraptor
         let spd = e.speed;
-        if (e.type === "fire_utahraptor" || e.type === "frozen_utahraptor") {
+        if (e.kind === "raptor") {
           e.dashTimer -= dt;
           if (e.dashTimer <= 0) {
             spd = e.speed * 2.4;
@@ -1313,11 +1308,7 @@ export class GameEngine {
           e.x += Math.cos(ang) * spd * dt;
           e.y += Math.sin(ang) * spd * dt;
         }
-        if (
-          e.type === "mini_fire_raptor" ||
-          e.type === "mini_frost_raptor" ||
-          e.type === "mini_toxic_raptor"
-        ) {
+        if (e.kind === "mini") {
           e.shootTimer -= dt;
           if (e.shootTimer <= 0) {
             e.shootTimer = 3.6;
@@ -1331,7 +1322,8 @@ export class GameEngine {
 
       // ---- leg / wing animation driven by real distance moved
       if (e.flying) {
-        e.runPhase += dt * 2.4;
+        // wings always flap, even when hovering in place
+        e.runPhase += dt * 5;
       } else {
         const emoved = Math.hypot(e.x - eprevX, e.y - eprevY);
         if (emoved > 0.2) {
@@ -1353,6 +1345,9 @@ export class GameEngine {
               size: 4 + Math.random() * 4,
             });
           }
+        } else {
+          // idle shuffle so grounded dinos never look frozen mid-air
+          e.runPhase += dt * 1.4;
         }
       }
 
