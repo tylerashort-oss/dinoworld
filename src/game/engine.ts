@@ -880,7 +880,7 @@ export class GameEngine {
 
   /** The pet lunges at the nearest enemy and claws it. */
   private petStrike() {
-    if (this.dead || !this.petId) return;
+    if (this.dead || !this.petId || this.petDownCd > 0) return;
     const pet = getPet(this.petId);
     if (!pet) return;
     const target = this.nearestEnemy(this.petX, this.petY);
