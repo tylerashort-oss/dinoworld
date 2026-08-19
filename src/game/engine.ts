@@ -19,6 +19,9 @@ export interface HudState {
   petReady: number;
   attackReady: number;
   petName: string | null;
+  petHp: number;
+  petMaxHp: number;
+  petDown: boolean;
   weaponName: string;
   hasDash: boolean;
   dashReady: number;
@@ -128,6 +131,7 @@ interface Enemy {
   enraged: boolean;
   dashTimer: number;
   bones: number;
+  kind: EnemyKind;
 }
 
 interface Projectile {
