@@ -1056,6 +1056,9 @@ export class GameEngine {
       petReady: this.petId ? clamp(1 - this.petCd / (getPet(this.petId)?.cooldown ?? 1), 0, 1) : 0,
       attackReady: clamp(1 - this.attackCd / w.cooldown, 0, 1),
       petName: getPet(this.petId)?.name ?? null,
+      petHp: Math.max(0, Math.round(this.petHp)),
+      petMaxHp: this.petMaxHp,
+      petDown: this.petDownCd > 0,
       weaponName: w.name,
       hasDash: this.dashEnabled,
       dashReady: this.dashEnabled ? clamp(1 - this.dashCd / this.dashCooldown, 0, 1) : 0,
@@ -1096,6 +1099,7 @@ export class GameEngine {
         enraged: false,
         dashTimer: 2,
         bones: Math.round(st.bones * this.difficulty),
+        kind: st.kind,
       });
       if (st.boss) {
         playSfx("boss");
