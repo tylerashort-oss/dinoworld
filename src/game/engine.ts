@@ -467,6 +467,10 @@ export class GameEngine {
   private petPhase = 0;
   private petFacing = 1;
   private petAutoCd = 2;
+  // pet vitality
+  private petHp = 0;
+  private petMaxHp = 0;
+  private petDownCd = 0;
 
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
