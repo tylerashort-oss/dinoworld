@@ -510,7 +510,12 @@ export function GameScreen({
       </div>
 
       <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-[10px] font-bold text-muted-foreground">
-        {weapon.name} · {hud?.petName ? `Pet: ${hud.petName}` : "No pet yet"}
+        {weapon.name} ·{" "}
+        {hud?.petName
+          ? hud.petDown
+            ? `Pet: ${hud.petName} (DOWN)`
+            : `Pet: ${hud.petName} ${hud.petHp}/${hud.petMaxHp} HP`
+          : "No pet yet"}
         {hud && !hud.bossName ? ` · Enemies left: ${hud.enemiesLeft}` : ""}
       </div>
 

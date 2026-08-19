@@ -19,6 +19,9 @@ export interface HudState {
   petReady: number;
   attackReady: number;
   petName: string | null;
+  petHp: number;
+  petMaxHp: number;
+  petDown: boolean;
   weaponName: string;
   hasDash: boolean;
   dashReady: number;
@@ -128,6 +131,7 @@ interface Enemy {
   enraged: boolean;
   dashTimer: number;
   bones: number;
+  kind: EnemyKind;
 }
 
 interface Projectile {
@@ -463,6 +467,10 @@ export class GameEngine {
   private petPhase = 0;
   private petFacing = 1;
   private petAutoCd = 2;
+  // pet vitality
+  private petHp = 0;
+  private petMaxHp = 0;
+  private petDownCd = 0;
 
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
@@ -549,6 +557,38 @@ export class GameEngine {
 
   setPet(id: string | null) {
     this.petId = id;
+    this.resetPetVitals();
+  }
+
+  /** Pets are tough but not immortal: HP scales with the pet's power and the world. */
+  private resetPetVitals() {
+    const pet = this.petId ? getPet(this.petId) : null;
+    this.petMaxHp = pet ? Math.round((90 + pet.damage * 3) * this.difficulty) : 0;
+    this.petHp = this.petMaxHp;
+    this.petDownCd = 0;
+  }
+
+  private hurtPet(dmg: number) {
+    if (!this.petId || this.petDownCd > 0 || this.petMaxHp <= 0) return;
+    this.petHp -= dmg;
+    for (let i = 0; i < 6; i++) {
+      this.particles.push({
+        x: this.petX,
+        y: this.petY,
+        vx: (Math.random() - 0.5) * 160,
+        vy: (Math.random() - 0.5) * 160,
+        life: 0.35,
+        maxLife: 0.35,
+        color: "#ff5a5a",
+        size: 5,
+      });
+    }
+    if (this.petHp <= 0) {
+      this.petHp = 0;
+      this.petDownCd = 12;
+      this.banner(`${getPet(this.petId)?.name ?? "PET"} IS DOWN!`);
+      playSfx("hit");
+    }
   }
 
   setPaused(p: boolean) {
@@ -587,6 +627,7 @@ export class GameEngine {
     this.petY = this.py + 30;
     this.petPhase = 0;
     this.petAutoCd = 2;
+    this.resetPetVitals();
     this.hp = this.maxHp;
     this.shield = this.shieldMax;
     this.dead = false;
@@ -839,7 +880,7 @@ export class GameEngine {
 
   /** The pet lunges at the nearest enemy and claws it. */
   private petStrike() {
-    if (this.dead || !this.petId) return;
+    if (this.dead || !this.petId || this.petDownCd > 0) return;
     const pet = getPet(this.petId);
     if (!pet) return;
     const target = this.nearestEnemy(this.petX, this.petY);
@@ -1048,6 +1089,9 @@ export class GameEngine {
       petReady: this.petId ? clamp(1 - this.petCd / (getPet(this.petId)?.cooldown ?? 1), 0, 1) : 0,
       attackReady: clamp(1 - this.attackCd / w.cooldown, 0, 1),
       petName: getPet(this.petId)?.name ?? null,
+      petHp: Math.max(0, Math.round(this.petHp)),
+      petMaxHp: this.petMaxHp,
+      petDown: this.petDownCd > 0,
       weaponName: w.name,
       hasDash: this.dashEnabled,
       dashReady: this.dashEnabled ? clamp(1 - this.dashCd / this.dashCooldown, 0, 1) : 0,
@@ -1088,6 +1132,7 @@ export class GameEngine {
         enraged: false,
         dashTimer: 2,
         bones: Math.round(st.bones * this.difficulty),
+        kind: st.kind,
       });
       if (st.boss) {
         playSfx("boss");
@@ -1211,7 +1256,16 @@ export class GameEngine {
     this.invuln = Math.max(0, this.invuln - dt);
 
     // ---- pet follow
-    if (this.petId) {
+    if (this.petId && this.petDownCd > 0) {
+      this.petDownCd -= dt;
+      if (this.petDownCd <= 0) {
+        this.petDownCd = 0;
+        this.petHp = this.petMaxHp;
+        this.petX = this.px - 50;
+        this.petY = this.py + 30;
+        this.banner(`${getPet(this.petId)?.name ?? "PET"} IS BACK!`);
+      }
+    } else if (this.petId) {
       const tx = this.px - this.facing * 62;
       const ty = this.py + 34;
       const ppx = this.petX;
@@ -1251,12 +1305,7 @@ export class GameEngine {
       const ang = Math.atan2(this.py - e.y, this.px - e.x);
       e.facing = this.px > e.x ? 1 : -1;
 
-      if (
-        e.boss &&
-        (e.type === "firesauras" || e.type === "glacierus" || e.type === "venomus") &&
-        !e.enraged &&
-        e.hp < e.maxHp * 0.5
-      ) {
+      if (e.kind === "titan" && !e.enraged && e.hp < e.maxHp * 0.5) {
         e.enraged = true;
         e.speed = e.speed * 1.5;
         this.banner(`${e.name} IS ENRAGED!`);
@@ -1273,7 +1322,7 @@ export class GameEngine {
           e.shootTimer = 2.2;
           this.shoot(e.x, e.y, ang, 260, 9);
         }
-      } else if (e.type === "firesauras" || e.type === "glacierus" || e.type === "venomus") {
+      } else if (e.kind === "titan") {
         const spd = e.speed * (d > 170 ? 1 : 0);
         e.x += Math.cos(ang) * spd * dt;
         e.y += Math.sin(ang) * spd * dt;
@@ -1290,7 +1339,7 @@ export class GameEngine {
       } else {
         // chasers: fireling, mini raptor, utahraptor
         let spd = e.speed;
-        if (e.type === "fire_utahraptor" || e.type === "frozen_utahraptor") {
+        if (e.kind === "raptor") {
           e.dashTimer -= dt;
           if (e.dashTimer <= 0) {
             spd = e.speed * 2.4;
@@ -1301,11 +1350,7 @@ export class GameEngine {
           e.x += Math.cos(ang) * spd * dt;
           e.y += Math.sin(ang) * spd * dt;
         }
-        if (
-          e.type === "mini_fire_raptor" ||
-          e.type === "mini_frost_raptor" ||
-          e.type === "mini_toxic_raptor"
-        ) {
+        if (e.kind === "mini") {
           e.shootTimer -= dt;
           if (e.shootTimer <= 0) {
             e.shootTimer = 3.6;
@@ -1319,7 +1364,8 @@ export class GameEngine {
 
       // ---- leg / wing animation driven by real distance moved
       if (e.flying) {
-        e.runPhase += dt * 2.4;
+        // wings always flap, even when hovering in place
+        e.runPhase += dt * 5;
       } else {
         const emoved = Math.hypot(e.x - eprevX, e.y - eprevY);
         if (emoved > 0.2) {
@@ -1341,6 +1387,9 @@ export class GameEngine {
               size: 4 + Math.random() * 4,
             });
           }
+        } else {
+          // idle shuffle so grounded dinos never look frozen mid-air
+          e.runPhase += dt * 1.4;
         }
       }
 
@@ -1348,6 +1397,15 @@ export class GameEngine {
       if (d < e.radius + 22 && e.contactCd <= 0 && (!e.flying || this.pz < 40)) {
         e.contactCd = 0.9;
         this.hurtPlayer(e.contactDamage);
+      }
+
+      // enemies can maul the pet too
+      if (this.petId && this.petDownCd <= 0 && e.contactCd <= 0) {
+        const pd = dist(e.x, e.y, this.petX, this.petY);
+        if (pd < e.radius + 26) {
+          e.contactCd = 1.1;
+          this.hurtPet(Math.round(e.contactDamage * 0.8));
+        }
       }
     }
 
@@ -1370,6 +1428,16 @@ export class GameEngine {
       if (!p.fromPlayer && this.pz < 34 && dist(p.x, p.y, this.px, this.py) < p.r + 20) {
         p.life = 0;
         this.hurtPlayer(p.dmg);
+      }
+      if (
+        !p.fromPlayer &&
+        p.life > 0 &&
+        this.petId &&
+        this.petDownCd <= 0 &&
+        dist(p.x, p.y, this.petX, this.petY) < p.r + 26
+      ) {
+        p.life = 0;
+        this.hurtPet(p.dmg);
       }
       if (p.fromPlayer) {
         for (const e of this.enemies) {
@@ -2266,6 +2334,7 @@ export class GameEngine {
 
   private drawPet(ctx: CanvasRenderingContext2D) {
     if (!this.petId) return;
+    if (this.petDownCd > 0) return;
     const pet = getPet(this.petId);
     if (!pet) return;
     const key = petSpriteKey(this.petId);
@@ -2281,6 +2350,22 @@ export class GameEngine {
       });
     } else {
       this.drawSprite(ctx, this.images[key] ?? null, this.petX, this.petY, bob, 78, this.petFacing);
+    }
+    // pet health bar
+    if (this.petMaxHp > 0) {
+      const w = 56;
+      const bx = this.petX - w / 2;
+      const by = this.petY - 74;
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,.6)";
+      ctx.beginPath();
+      ctx.roundRect(bx - 2, by - 2, w + 4, 10, 5);
+      ctx.fill();
+      ctx.fillStyle = "#5ce27a";
+      ctx.beginPath();
+      ctx.roundRect(bx, by, w * clamp(this.petHp / this.petMaxHp, 0, 1), 6, 3);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
