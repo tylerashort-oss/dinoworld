@@ -2334,6 +2334,7 @@ export class GameEngine {
 
   private drawPet(ctx: CanvasRenderingContext2D) {
     if (!this.petId) return;
+    if (this.petDownCd > 0) return;
     const pet = getPet(this.petId);
     if (!pet) return;
     const key = petSpriteKey(this.petId);
@@ -2349,6 +2350,22 @@ export class GameEngine {
       });
     } else {
       this.drawSprite(ctx, this.images[key] ?? null, this.petX, this.petY, bob, 78, this.petFacing);
+    }
+    // pet health bar
+    if (this.petMaxHp > 0) {
+      const w = 56;
+      const bx = this.petX - w / 2;
+      const by = this.petY - 74;
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,.6)";
+      ctx.beginPath();
+      ctx.roundRect(bx - 2, by - 2, w + 4, 10, 5);
+      ctx.fill();
+      ctx.fillStyle = "#5ce27a";
+      ctx.beginPath();
+      ctx.roundRect(bx, by, w * clamp(this.petHp / this.petMaxHp, 0, 1), 6, 3);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
