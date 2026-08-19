@@ -1398,6 +1398,15 @@ export class GameEngine {
         e.contactCd = 0.9;
         this.hurtPlayer(e.contactDamage);
       }
+
+      // enemies can maul the pet too
+      if (this.petId && this.petDownCd <= 0 && e.contactCd <= 0) {
+        const pd = dist(e.x, e.y, this.petX, this.petY);
+        if (pd < e.radius + 26) {
+          e.contactCd = 1.1;
+          this.hurtPet(Math.round(e.contactDamage * 0.8));
+        }
+      }
     }
 
     // ---- projectiles
