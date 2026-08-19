@@ -6,6 +6,7 @@ import { initAudio, playSfx, setSoundEnabled } from "@/game/audio";
 import { persistSave, type SaveData } from "@/game/save";
 import { Joystick } from "./Joystick";
 import { GameCard } from "./GameCard";
+import { Tutorial } from "./Tutorial";
 
 interface RewardOverlay {
   title: string;
@@ -126,6 +127,7 @@ export function GameScreen({
   const [reward, setReward] = useState<RewardOverlay | null>(null);
   const [dead, setDead] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [tutorial, setTutorial] = useState(() => !save.flags?.tutorialSeen);
   const [victory, setVictory] = useState<null | { world: number }>(null);
   const transitioning = useRef(false);
 
@@ -387,7 +389,7 @@ export function GameScreen({
     engineRef.current?.setKeybinds(save.keybinds);
   }, [save.keybinds]);
 
-  const blocked = !!reward || dead || paused || !!victory;
+  const blocked = !!reward || dead || paused || !!victory || tutorial;
   useEffect(() => {
     engineRef.current?.setPaused(blocked);
   }, [blocked]);
