@@ -16,6 +16,7 @@ import { WORLDS } from "@/game/worlds";
 import { ACTIONS, keyLabel, rebind, defaultKeybinds, type ActionId } from "@/game/keybinds";
 import type { SaveData } from "@/game/save";
 import { GameCard } from "./GameCard";
+import { Tutorial } from "./Tutorial";
 
 const panel =
   "rounded-2xl border-2 border-border/70 bg-card/80 p-4 shadow-[0_0_30px_rgba(255,110,30,.12)] backdrop-blur";
@@ -37,8 +38,10 @@ export function MainMenu({
   onNew: () => void;
   onContinue: () => void;
 }) {
+  const [showTutorial, setShowTutorial] = useState(false);
   return (
     <Shell>
+      {showTutorial && <Tutorial onClose={() => setShowTutorial(false)} />}
       <div className="flex min-h-[calc(100vh-2rem)] flex-col items-center justify-center gap-6 text-center">
         <div>
           <h1 className="title-glow text-5xl font-black tracking-[0.12em] text-primary md:text-7xl">
@@ -62,6 +65,12 @@ export function MainMenu({
             className="rounded-2xl border-2 border-primary/60 bg-black/50 px-14 py-4 text-2xl font-black text-foreground active:scale-95"
           >
             NEW GAME
+          </button>
+          <button
+            onClick={() => setShowTutorial(true)}
+            className="rounded-2xl border-2 border-border bg-black/40 px-14 py-3 text-lg font-black text-foreground active:scale-95"
+          >
+            ❓ HOW TO PLAY
           </button>
         </div>
         <p className="max-w-md text-xs text-muted-foreground">
