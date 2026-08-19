@@ -1420,6 +1420,16 @@ export class GameEngine {
         p.life = 0;
         this.hurtPlayer(p.dmg);
       }
+      if (
+        !p.fromPlayer &&
+        p.life > 0 &&
+        this.petId &&
+        this.petDownCd <= 0 &&
+        dist(p.x, p.y, this.petX, this.petY) < p.r + 26
+      ) {
+        p.life = 0;
+        this.hurtPet(p.dmg);
+      }
       if (p.fromPlayer) {
         for (const e of this.enemies) {
           if (dist(p.x, p.y, e.x, e.y) < p.r + e.radius) {
