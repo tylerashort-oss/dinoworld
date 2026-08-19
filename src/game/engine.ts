@@ -1365,7 +1365,8 @@ export class GameEngine {
       // ---- leg / wing animation driven by real distance moved
       if (e.flying) {
         // wings always flap, even when hovering in place
-        e.runPhase += dt * 5;
+        // ~2.4 flaps per second → a readable wingbeat instead of a blur
+        e.runPhase += dt * 2.4;
       } else {
         const emoved = Math.hypot(e.x - eprevX, e.y - eprevY);
         if (emoved > 0.2) {
