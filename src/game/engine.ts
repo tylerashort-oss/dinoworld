@@ -1256,7 +1256,16 @@ export class GameEngine {
     this.invuln = Math.max(0, this.invuln - dt);
 
     // ---- pet follow
-    if (this.petId) {
+    if (this.petId && this.petDownCd > 0) {
+      this.petDownCd -= dt;
+      if (this.petDownCd <= 0) {
+        this.petDownCd = 0;
+        this.petHp = this.petMaxHp;
+        this.petX = this.px - 50;
+        this.petY = this.py + 30;
+        this.banner(`${getPet(this.petId)?.name ?? "PET"} IS BACK!`);
+      }
+    } else if (this.petId) {
       const tx = this.px - this.facing * 62;
       const ty = this.py + 34;
       const ppx = this.petX;
