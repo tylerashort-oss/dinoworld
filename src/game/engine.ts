@@ -557,6 +557,38 @@ export class GameEngine {
 
   setPet(id: string | null) {
     this.petId = id;
+    this.resetPetVitals();
+  }
+
+  /** Pets are tough but not immortal: HP scales with the pet's power and the world. */
+  private resetPetVitals() {
+    const pet = this.petId ? getPet(this.petId) : null;
+    this.petMaxHp = pet ? Math.round((90 + pet.damage * 3) * this.difficulty) : 0;
+    this.petHp = this.petMaxHp;
+    this.petDownCd = 0;
+  }
+
+  private hurtPet(dmg: number) {
+    if (!this.petId || this.petDownCd > 0 || this.petMaxHp <= 0) return;
+    this.petHp -= dmg;
+    for (let i = 0; i < 6; i++) {
+      this.particles.push({
+        x: this.petX,
+        y: this.petY,
+        vx: (Math.random() - 0.5) * 160,
+        vy: (Math.random() - 0.5) * 160,
+        life: 0.35,
+        maxLife: 0.35,
+        color: "#ff5a5a",
+        size: 5,
+      });
+    }
+    if (this.petHp <= 0) {
+      this.petHp = 0;
+      this.petDownCd = 12;
+      this.banner(`${getPet(this.petId)?.name ?? "PET"} IS DOWN!`);
+      playSfx("hit");
+    }
   }
 
   setPaused(p: boolean) {
