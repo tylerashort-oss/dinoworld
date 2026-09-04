@@ -1,6 +1,14 @@
 import { AREAS, type AreaDef, type EnemyType } from "./areas";
-import { getAreas } from "./worlds";
-import { RUN_SHEETS, SPRITES, getCharacter, getPet, getWeapon, petSpriteKey } from "./content";
+import { WORLDS, getAreas } from "./worlds";
+import {
+  PETS,
+  RUN_SHEETS,
+  SPRITES,
+  getCharacter,
+  getPet,
+  getWeapon,
+  petSpriteKey,
+} from "./content";
 import { defaultKeybinds, type ActionId, type Keybinds } from "./keybinds";
 import { playSfx } from "./audio";
 
@@ -132,6 +140,8 @@ interface Enemy {
   dashTimer: number;
   bones: number;
   kind: EnemyKind;
+  /** Separate from contactCd so hitting the player never shields the pet. */
+  petContactCd: number;
 }
 
 interface Projectile {
@@ -594,7 +604,8 @@ export class GameEngine {
     const ch = getCharacter(opts.characterId);
     this.speedMul = ch.speed;
     this.lootBonus = ch.lootBonus;
-    this.difficulty = opts.difficulty ?? 1;
+    // opts.difficulty carries the world number; convert it once, here.
+    this.difficulty = worldScale(opts.difficulty ?? 1);
     this.damageMul = opts.damageMul ?? 1;
     this.petMul = opts.petMul ?? 1;
     this.petHits = opts.petHits ?? 1;
@@ -1216,6 +1227,7 @@ export class GameEngine {
         dashTimer: 2,
         bones: Math.round(st.bones * this.difficulty),
         kind: st.kind,
+        petContactCd: 0,
       });
       if (st.boss) {
         playSfx("boss");
@@ -1382,6 +1394,7 @@ export class GameEngine {
     for (const e of this.enemies) {
       e.hitFlash = Math.max(0, e.hitFlash - dt);
       e.contactCd = Math.max(0, e.contactCd - dt);
+      e.petContactCd = Math.max(0, e.petContactCd - dt);
       const eprevX = e.x;
       const eprevY = e.y;
       const d = dist(e.x, e.y, this.px, this.py);
@@ -1484,10 +1497,10 @@ export class GameEngine {
       }
 
       // enemies can maul the pet too
-      if (this.petId && this.petDownCd <= 0 && e.contactCd <= 0) {
+      if (this.petId && this.petDownCd <= 0 && e.petContactCd <= 0) {
         const pd = dist(e.x, e.y, this.petX, this.petY);
         if (pd < e.radius + 26) {
-          e.contactCd = 1.1;
+          e.petContactCd = 1.1;
           this.hurtPet(Math.round(e.contactDamage * 0.8));
         }
       }
@@ -1506,7 +1519,7 @@ export class GameEngine {
           vy: 0,
           life: 0.25,
           maxLife: 0.25,
-          color: p.theme === "ice" ? "#9fe6ff" : p.theme === "poison" ? "#a4ee54" : "#ff9d2e",
+          color: TRAIL_COLOR[p.theme] ?? TRAIL_COLOR.fire,
           size: p.r * 1.2,
         });
       if (!p.fromPlayer && this.pz < 34 && dist(p.x, p.y, this.px, this.py) < p.r + 20) {
@@ -1642,7 +1655,7 @@ export class GameEngine {
       vx: Math.cos(ang) * speed,
       vy: Math.sin(ang) * speed,
       r: 13,
-      dmg: Math.round(dmg * (1 + (this.difficulty - 1) * 0.35)),
+      dmg: Math.round(dmg * this.difficulty),
       life: 4,
       fromPlayer: false,
       theme: this.theme,
