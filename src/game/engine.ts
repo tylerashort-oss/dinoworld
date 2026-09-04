@@ -2932,7 +2932,6 @@ export class GameEngine {
       : Math.sin(this.time * 2.4) * 2;
     ctx.save();
     if (flick) ctx.globalAlpha = 0.45;
-    // airborne holds a single stride frame instead of running in mid-air
     this.drawAnim(
       ctx,
       this.playerAnim,
@@ -2943,9 +2942,9 @@ export class GameEngine {
       118,
       this.facing,
       0,
-      airborne ? 2 : undefined,
     );
     ctx.restore();
+
 
     if (this.attackAnim > 0) {
       const w = getWeapon(this.weaponId);
