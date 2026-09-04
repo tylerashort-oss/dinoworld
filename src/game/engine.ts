@@ -887,7 +887,8 @@ export class GameEngine {
     const w = getWeapon(this.weaponId);
     this.attackCd = w.cooldown;
     this.attackAnim = 0.22;
-    this.playerAnim.setState("attack", true);
+    // while running, keep the run cycle (the weapon arc already shows the swing)
+    if (this.runSpeed < 30) this.playerAnim.setState("attack", true);
     const wDamage = Math.round(w.damage * this.damageMul);
     playSfx("attack");
     // Kid-friendly auto-aim: if an enemy is in reach, swing at the closest one.
