@@ -791,6 +791,7 @@ export class GameEngine {
     this.particles = [];
     this.numbers = [];
     this.eruptions = [];
+    this.shockwaves = [];
     this.waveIndex = 0;
     this.waveDelay = 0.8;
     this.exitOpen = area.waves.length === 0 && !area.chest;
@@ -1710,6 +1711,43 @@ export class GameEngine {
     }
     compact(this.eruptions, (e) => !e.done);
 
+    // ---- boss ground slams
+    for (const sw of this.shockwaves) {
+      if (sw.warn > 0) {
+        sw.warn -= dt;
+        if (sw.warn <= 0) {
+          sw.burst = 0.5;
+          playSfx("eruption");
+          for (let i = 0; i < 26; i++)
+            pushCapped(
+              this.particles,
+              {
+                x: sw.x + (Math.random() - 0.5) * sw.r,
+                y: sw.y + (Math.random() - 0.5) * sw.r * 0.6,
+                vx: (Math.random() - 0.5) * 200,
+                vy: -200 - Math.random() * 200,
+                life: 0.7,
+                maxLife: 0.7,
+                color: sw.color,
+                size: 8 + Math.random() * 8,
+              },
+              MAX_PARTICLES,
+            );
+          if (!sw.hit) {
+            sw.hit = true;
+            if (this.pz < 45 && dist(sw.x, sw.y, this.px, this.py) < sw.r)
+              this.hurtPlayer(Math.round(sw.dmg * this.difficulty));
+            if (this.petId && this.petDownCd <= 0 && dist(sw.x, sw.y, this.petX, this.petY) < sw.r)
+              this.hurtPet(Math.round(sw.dmg * 0.7 * this.difficulty));
+          }
+        }
+      } else {
+        sw.burst -= dt;
+        if (sw.burst <= 0) sw.done = true;
+      }
+    }
+    compact(this.shockwaves, (sw) => !sw.done);
+
     // ---- cave discovery
     if (area.cave && !this.caveFound && dist(this.px, this.py, area.cave.x, area.cave.y) < 70) {
       this.caveFound = true;
@@ -2208,6 +2246,7 @@ export class GameEngine {
 
     this.drawLava(ctx);
     this.drawEruptions(ctx);
+    this.drawShockwaves(ctx);
     this.drawCaveAndExit(ctx);
     this.drawPickups(ctx);
     this.drawRocks(ctx);
@@ -2404,6 +2443,38 @@ export class GameEngine {
       ctx.beginPath();
       ctx.roundRect(r.x, r.y, r.w, r.h, 26);
       ctx.stroke();
+    }
+  }
+
+  /** Telegraph ring + blast for boss ground slams. */
+  private drawShockwaves(ctx: CanvasRenderingContext2D) {
+    for (const sw of this.shockwaves) {
+      ctx.save();
+      if (sw.warn > 0) {
+        const t = 1 - sw.warn / sw.warnMax;
+        ctx.globalAlpha = 0.35 + 0.35 * Math.sin(this.time * 20);
+        ctx.strokeStyle = sw.color;
+        ctx.lineWidth = 8;
+        ctx.setLineDash([18, 14]);
+        ctx.beginPath();
+        ctx.ellipse(sw.x, sw.y, sw.r, sw.r * 0.6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = sw.color;
+        ctx.beginPath();
+        ctx.ellipse(sw.x, sw.y, sw.r * t, sw.r * 0.6 * t, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const t = clamp(sw.burst / 0.5, 0, 1);
+        ctx.globalAlpha = t;
+        ctx.strokeStyle = sw.color;
+        ctx.lineWidth = 14 * t;
+        ctx.beginPath();
+        ctx.ellipse(sw.x, sw.y, sw.r * (1.6 - t * 0.6), sw.r * 0.6 * (1.6 - t * 0.6), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
   }
 
