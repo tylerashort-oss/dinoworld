@@ -2855,7 +2855,7 @@ export class GameEngine {
   private drawEnemies(ctx: CanvasRenderingContext2D) {
     const sorted = [...this.enemies].sort((a, b) => a.y - b.y);
     for (const e of sorted) {
-      const bob = Math.abs(Math.sin(e.anim.phase * Math.PI * 2)) * (e.flying ? 6 : e.size * 0.03);
+      const bob = e.flying ? Math.abs(Math.sin(e.anim.phase * Math.PI * 2)) * 6 : 0;
       // attacking creatures lunge toward the player so the swing reads clearly
       const lunge =
         e.anim.state === "attack" ? Math.sin(e.anim.progress * Math.PI) * e.size * 0.12 : 0;
