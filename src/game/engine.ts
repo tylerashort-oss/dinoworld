@@ -1378,16 +1378,19 @@ export class GameEngine {
     const moved = Math.hypot(this.px - prevX, this.py - prevY);
     this.runSpeed = dt > 0 ? moved / dt : 0;
     const pAnim = this.playerAnim;
+    const grounded = this.pz <= 0;
+    const reallyMoving = grounded && moved > 0.4;
     if (pAnim.state === "attack" || pAnim.state === "hit") {
       pAnim.update(dt);
       if (pAnim.finished) pAnim.toBase();
-    } else if (moved > 0.4 || this.pz > 0) {
+    } else if (reallyMoving) {
       pAnim.setState("run");
+      pAnim.update(dt); // time-based so legs keep pumping on iPad
     } else {
       pAnim.setState("idle");
       pAnim.update(dt);
     }
-    if (this.pz <= 0 && moved > 0.4) {
+    if (reallyMoving) {
       const prevPhase = pAnim.phase;
       pAnim.advanceFrames((moved / 55) * this.runFrames);
       // dust puff each time a foot plants (whole-frame boundary)
