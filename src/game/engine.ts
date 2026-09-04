@@ -1378,16 +1378,19 @@ export class GameEngine {
     const moved = Math.hypot(this.px - prevX, this.py - prevY);
     this.runSpeed = dt > 0 ? moved / dt : 0;
     const pAnim = this.playerAnim;
+    const grounded = this.pz <= 0;
+    const reallyMoving = grounded && moved > 0.4;
     if (pAnim.state === "attack" || pAnim.state === "hit") {
       pAnim.update(dt);
       if (pAnim.finished) pAnim.toBase();
-    } else if (moved > 0.4 || this.pz > 0) {
+    } else if (reallyMoving) {
       pAnim.setState("run");
+      pAnim.update(dt); // time-based so legs keep pumping on iPad
     } else {
       pAnim.setState("idle");
       pAnim.update(dt);
     }
-    if (this.pz <= 0 && moved > 0.4) {
+    if (reallyMoving) {
       const prevPhase = pAnim.phase;
       pAnim.advanceFrames((moved / 55) * this.runFrames);
       // dust puff each time a foot plants (whole-frame boundary)
@@ -1506,7 +1509,8 @@ export class GameEngine {
       const eprevY = e.y;
       const d = dist(e.x, e.y, this.px, this.py);
       const ang = Math.atan2(this.py - e.y, this.px - e.x);
-      e.facing = this.px > e.x ? 1 : -1;
+      const fdx = this.px - e.x;
+      if (Math.abs(fdx) > 18) e.facing = fdx > 0 ? 1 : -1;
 
       if (e.kind === "titan" && !e.enraged && e.hp < e.maxHp * 0.5) {
         e.enraged = true;
@@ -1572,6 +1576,7 @@ export class GameEngine {
         if (emoved > 0.2) {
           if (!oneShot) e.anim.setState("run");
           const prevPhase = e.anim.phase;
+          if (!oneShot) e.anim.update(dt);
           e.anim.advanceFrames((emoved / (e.size * 0.55)) * e.runFrames);
           if (Math.floor(prevPhase * e.runFrames) !== Math.floor(e.anim.phase * e.runFrames)) {
             this.particles.push({
@@ -2851,7 +2856,7 @@ export class GameEngine {
   private drawEnemies(ctx: CanvasRenderingContext2D) {
     const sorted = [...this.enemies].sort((a, b) => a.y - b.y);
     for (const e of sorted) {
-      const bob = Math.abs(Math.sin(e.anim.phase * Math.PI * 2)) * (e.flying ? 6 : e.size * 0.03);
+      const bob = e.flying ? Math.abs(Math.sin(e.anim.phase * Math.PI * 2)) * 6 : 0;
       // attacking creatures lunge toward the player so the swing reads clearly
       const lunge =
         e.anim.state === "attack" ? Math.sin(e.anim.progress * Math.PI) * e.size * 0.12 : 0;
@@ -2923,13 +2928,11 @@ export class GameEngine {
   private drawPlayer(ctx: CanvasRenderingContext2D) {
     const flick = this.invuln > 0 && Math.floor(this.time * 20) % 2 === 0;
     const running = this.pz <= 0 && this.runSpeed > 30;
-    const airborne = this.pz > 0;
     const bob = running
       ? Math.abs(Math.sin(this.playerAnim.phase * Math.PI * 2)) * 5
       : Math.sin(this.time * 2.4) * 2;
     ctx.save();
     if (flick) ctx.globalAlpha = 0.45;
-    // airborne holds a single stride frame instead of running in mid-air
     this.drawAnim(
       ctx,
       this.playerAnim,
@@ -2940,9 +2943,9 @@ export class GameEngine {
       118,
       this.facing,
       0,
-      airborne ? 2 : undefined,
     );
     ctx.restore();
+
 
     if (this.attackAnim > 0) {
       const w = getWeapon(this.weaponId);
