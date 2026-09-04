@@ -9,6 +9,14 @@ import {
   getWeapon,
   petSpriteKey,
 } from "./content";
+import {
+  Animator,
+  buildAnimationSet,
+  clipReady,
+  frameRect,
+  validateAllAnimations,
+  type AnimationClip,
+} from "./animation";
 import { defaultKeybinds, type ActionId, type Keybinds } from "./keybinds";
 import { playSfx } from "./audio";
 
@@ -128,9 +136,9 @@ interface Enemy {
   boss: boolean;
   name: string;
   sprite: HTMLImageElement | null;
-  runSheet: HTMLImageElement | null;
+  /** Explicit animation state machine (idle/run/fly/attack/hit/death). */
+  anim: Animator;
   runFrames: number;
-  runPhase: number;
   flying: boolean;
   shootTimer: number;
   hitFlash: number;
@@ -142,6 +150,16 @@ interface Enemy {
   kind: EnemyKind;
   /** Separate from contactCd so hitting the player never shields the pet. */
   petContactCd: number;
+}
+
+interface Corpse {
+  anim: Animator;
+  x: number;
+  y: number;
+  z: number;
+  size: number;
+  facing: number;
+  sprite: HTMLImageElement | null;
 }
 
 interface Projectile {
@@ -496,7 +514,10 @@ function validateContent() {
     if (!(90 + pet.damage * 3 > 0)) warn(`pet "${id}" would spawn with no HP`);
   }
 }
-if (import.meta.env.DEV) validateContent();
+if (import.meta.env.DEV) {
+  validateContent();
+  validateAllAnimations();
+}
 
 export class GameEngine {
   private canvas: HTMLCanvasElement;
@@ -534,7 +555,7 @@ export class GameEngine {
   private dead = false;
   private speedMul = 1;
   private lootBonus = 0;
-  private runPhase = 0;
+  private playerAnim = new Animator(buildAnimationSet("rocket_boy", false), "idle");
   private runSpeed = 0;
   private runFrames = 1;
   private difficulty = 1;
@@ -557,7 +578,7 @@ export class GameEngine {
   // pet
   private petX = 0;
   private petY = 0;
-  private petPhase = 0;
+  private petAnim: Animator | null = null;
   private petFacing = 1;
   private petAutoCd = 2;
   // pet vitality
@@ -566,6 +587,7 @@ export class GameEngine {
   private petDownCd = 0;
 
   private enemies: Enemy[] = [];
+  private corpses: Corpse[] = [];
   private projectiles: Projectile[] = [];
   private particles: Particle[] = [];
   private numbers: DamageNumber[] = [];
@@ -635,6 +657,10 @@ export class GameEngine {
     const sheet = RUN_SHEETS[characterId] ?? RUN_SHEETS["rocket_boy"];
     this.images["playerRun"] = this.images[`${characterId}__run`] ?? this.images["rocket_boy__run"];
     this.runFrames = sheet?.frames ?? 4;
+    this.playerAnim = new Animator(
+      buildAnimationSet(RUN_SHEETS[characterId] ? characterId : "rocket_boy", false),
+      "idle",
+    );
   }
 
   setCharacterSprite(characterId: string) {
@@ -651,6 +677,7 @@ export class GameEngine {
 
   setPet(id: string | null) {
     this.petId = id;
+    this.petAnim = id ? new Animator(buildAnimationSet(petSpriteKey(id), false), "idle") : null;
     this.resetPetVitals();
   }
 
@@ -665,6 +692,7 @@ export class GameEngine {
   private hurtPet(dmg: number) {
     if (!this.petId || this.petDownCd > 0 || this.petMaxHp <= 0) return;
     this.petHp -= dmg;
+    this.petAnim?.setState("hit", true);
     for (let i = 0; i < 6; i++) {
       this.particles.push({
         x: this.petX,
@@ -719,8 +747,8 @@ export class GameEngine {
     this.pvz = 0;
     this.petX = this.px - 50;
     this.petY = this.py + 30;
-    this.petPhase = 0;
     this.petAutoCd = 2;
+    this.corpses = [];
     this.resetPetVitals();
     this.hp = this.maxHp;
     this.shield = this.shieldMax;
@@ -859,6 +887,8 @@ export class GameEngine {
     const w = getWeapon(this.weaponId);
     this.attackCd = w.cooldown;
     this.attackAnim = 0.22;
+    // while running, keep the run cycle (the weapon arc already shows the swing)
+    if (this.runSpeed < 30) this.playerAnim.setState("attack", true);
     const wDamage = Math.round(w.damage * this.damageMul);
     playSfx("attack");
     // Kid-friendly auto-aim: if an enemy is in reach, swing at the closest one.
@@ -981,6 +1011,7 @@ export class GameEngine {
     if (!target) return;
     this.petCd = pet.cooldown;
     this.petAutoCd = pet.cooldown * 1.9;
+    this.petAnim?.setState("attack", true);
     // pet lunges: instant strike + flame trail
     const steps = 14;
     for (let i = 0; i < steps; i++) {
@@ -1022,6 +1053,7 @@ export class GameEngine {
   private damageEnemy(e: Enemy, dmg: number) {
     e.hp -= dmg;
     e.hitFlash = 0.18;
+    if (e.hp > 0) e.anim.setState("hit", true);
     const kb = e.boss ? 6 : 22;
     const a = Math.atan2(e.y - this.py, e.x - this.px);
     e.x += Math.cos(a) * kb;
@@ -1048,6 +1080,13 @@ export class GameEngine {
 
   private killEnemy(e: Enemy) {
     this.enemies = this.enemies.filter((x) => x !== e);
+    // death animation runs on a corpse so it never affects gameplay or waves
+    e.anim.setState("death", true);
+    pushCapped(
+      this.corpses,
+      { anim: e.anim, x: e.x, y: e.y, z: e.z, size: e.size, facing: e.facing, sprite: e.sprite },
+      12,
+    );
     for (let i = 0; i < 22; i++) {
       this.particles.push({
         x: e.x,
@@ -1124,7 +1163,12 @@ export class GameEngine {
       chestOpen: this.chestOpen,
       cave: this.area.cave ?? null,
       dead: this.dead,
+      corpses: this.corpses.length,
+      playerAnim: this.playerAnim.state,
+      petAnim: this.petAnim?.state ?? null,
       enemies: this.enemies.map((e) => ({
+        anim: e.anim.state,
+        animValid: !!e.anim.clip?.valid,
         type: e.type,
         hp: Math.round(e.hp),
         x: Math.round(e.x),
@@ -1215,9 +1259,11 @@ export class GameEngine {
         boss: st.boss,
         name: st.name,
         sprite: this.images[st.sprite] ?? null,
-        runSheet: this.images[`${st.sprite}__run`] ?? null,
+        anim: new Animator(
+          buildAnimationSet(st.sprite, !!st.flying),
+          st.flying ? "fly" : "idle",
+        ),
         runFrames: runSheet?.frames ?? 4,
-        runPhase: Math.random(),
         flying: !!st.flying,
         shootTimer: 1 + Math.random() * 2,
         hitFlash: 0,
@@ -1294,11 +1340,21 @@ export class GameEngine {
     // ---- run cycle driven by actual distance moved
     const moved = Math.hypot(this.px - prevX, this.py - prevY);
     this.runSpeed = dt > 0 ? moved / dt : 0;
+    const pAnim = this.playerAnim;
+    if (pAnim.state === "attack" || pAnim.state === "hit") {
+      pAnim.update(dt);
+      if (pAnim.finished) pAnim.toBase();
+    } else if (moved > 0.4 || this.pz > 0) {
+      pAnim.setState("run");
+    } else {
+      pAnim.setState("idle");
+      pAnim.update(dt);
+    }
     if (this.pz <= 0 && moved > 0.4) {
-      const prevPhase = this.runPhase;
-      this.runPhase += moved / 55;
+      const prevPhase = pAnim.phase;
+      pAnim.advanceFrames((moved / 55) * this.runFrames);
       // dust puff each time a foot plants (whole-frame boundary)
-      if (Math.floor(prevPhase * this.runFrames) !== Math.floor(this.runPhase * this.runFrames)) {
+      if (Math.floor(prevPhase * this.runFrames) !== Math.floor(pAnim.phase * this.runFrames)) {
         this.particles.push({
           x: this.px - this.facing * 12 + (Math.random() - 0.5) * 10,
           y: this.py + 12,
@@ -1368,11 +1424,21 @@ export class GameEngine {
       this.petX += (tx - this.petX) * Math.min(1, dt * 4);
       this.petY += (ty - this.petY) * Math.min(1, dt * 4);
       const pmoved = Math.hypot(this.petX - ppx, this.petY - ppy);
+      const pa = this.petAnim;
+      if (pa && (pa.state === "attack" || pa.state === "hit")) {
+        pa.update(dt);
+        if (pa.finished) pa.toBase();
+      } else if (pmoved > 0.15) {
+        pa?.setState("run");
+      } else {
+        pa?.setState("idle");
+        pa?.update(dt);
+      }
       if (pmoved > 0.15) {
-        const prev = this.petPhase;
-        this.petPhase += pmoved / 34;
+        const prev = pa?.phase ?? 0;
+        pa?.advanceFrames((pmoved / 34) * 4);
         if (Math.abs(this.petX - ppx) > 0.2) this.petFacing = this.petX > ppx ? 1 : -1;
-        if (Math.floor(prev * 4) !== Math.floor(this.petPhase * 4)) {
+        if (Math.floor(prev * 4) !== Math.floor((pa?.phase ?? 0) * 4)) {
           this.particles.push({
             x: this.petX - this.petFacing * 10,
             y: this.petY + 8,
@@ -1389,6 +1455,10 @@ export class GameEngine {
       this.petAutoCd -= dt;
       if (this.petAutoCd <= 0 && this.petCd <= 0) this.petStrike();
     }
+
+    // ---- death animations (cosmetic only)
+    for (const c of this.corpses) c.anim.update(dt);
+    compact(this.corpses, (c) => c.anim.progress < 1);
 
     // ---- enemies
     for (const e of this.enemies) {
@@ -1416,6 +1486,7 @@ export class GameEngine {
         e.shootTimer -= dt;
         if (e.shootTimer <= 0) {
           e.shootTimer = 2.2;
+          e.anim.setState("attack", true);
           this.shoot(e.x, e.y, ang, 260, 9);
         }
       } else if (e.kind === "titan") {
@@ -1425,6 +1496,7 @@ export class GameEngine {
         e.shootTimer -= dt;
         if (e.shootTimer <= 0) {
           e.shootTimer = e.enraged ? 1.7 : 2.8;
+          e.anim.setState("attack", true);
           const n = e.enraged ? 5 : 3;
           for (let i = 0; i < n; i++) {
             const spread = (i - (n - 1) / 2) * 0.28;
@@ -1439,6 +1511,7 @@ export class GameEngine {
           e.dashTimer -= dt;
           if (e.dashTimer <= 0) {
             spd = e.speed * 2.4;
+            if (e.dashTimer > -0.05) e.anim.setState("attack", true);
             if (e.dashTimer < -0.55) e.dashTimer = 2.6;
           }
         }
@@ -1450,6 +1523,7 @@ export class GameEngine {
           e.shootTimer -= dt;
           if (e.shootTimer <= 0) {
             e.shootTimer = 3.6;
+            e.anim.setState("attack", true);
             for (let i = -1; i <= 1; i++) this.shoot(e.x, e.y, ang + i * 0.25, 280, 10);
           }
         }
@@ -1458,17 +1532,24 @@ export class GameEngine {
       e.x = clamp(e.x, 40, area.w - 40);
       e.y = clamp(e.y, 40, area.h - 40);
 
-      // ---- leg / wing animation driven by real distance moved
+      // ---- animation state machine
+      // one-shot states (attack / hit) play out before movement resumes
+      if (e.anim.state === "attack" || e.anim.state === "hit") {
+        e.anim.update(dt);
+        if (e.anim.finished) e.anim.toBase();
+      }
+      const oneShot = e.anim.state === "attack" || e.anim.state === "hit";
       if (e.flying) {
-        // wings always flap, even when hovering in place
-        // ~2.4 flaps per second → a readable wingbeat instead of a blur
-        e.runPhase += dt * 2.4;
+        // wings always beat, even when hovering in place
+        if (!oneShot) e.anim.setState("fly");
+        e.anim.update(dt, 0.75);
       } else {
         const emoved = Math.hypot(e.x - eprevX, e.y - eprevY);
         if (emoved > 0.2) {
-          const prevPhase = e.runPhase;
-          e.runPhase += emoved / (e.size * 0.55);
-          if (Math.floor(prevPhase * e.runFrames) !== Math.floor(e.runPhase * e.runFrames)) {
+          if (!oneShot) e.anim.setState("run");
+          const prevPhase = e.anim.phase;
+          e.anim.advanceFrames((emoved / (e.size * 0.55)) * e.runFrames);
+          if (Math.floor(prevPhase * e.runFrames) !== Math.floor(e.anim.phase * e.runFrames)) {
             this.particles.push({
               x: e.x - e.facing * e.size * 0.14,
               y: e.y + e.size * 0.1,
@@ -1485,8 +1566,9 @@ export class GameEngine {
             });
           }
         } else {
-          // idle shuffle so grounded dinos never look frozen mid-air
-          e.runPhase += dt * 1.4;
+          // resting pose instead of a frozen mid-stride frame
+          if (!oneShot) e.anim.setState("idle");
+          e.anim.update(dt);
         }
       }
 
@@ -1686,6 +1768,7 @@ export class GameEngine {
     this.hp -= dmg;
     if (!continuous) {
       this.invuln = 0.85;
+      this.playerAnim.setState("hit", true);
       playSfx("hurt");
       for (let i = 0; i < 10; i++)
         this.particles.push({
@@ -1701,6 +1784,7 @@ export class GameEngine {
     }
     if (this.hp <= 0) {
       this.hp = 0;
+      this.playerAnim.setState("death", true);
       this.dead = true;
       this.opts.onEvent({ type: "death" });
     }
@@ -1893,6 +1977,7 @@ export class GameEngine {
     this.drawPickups(ctx);
     this.drawRocks(ctx);
     this.drawChest(ctx);
+    this.drawCorpses(ctx);
     this.drawEnemies(ctx);
     this.drawPet(ctx);
     this.drawPlayer(ctx);
@@ -2398,20 +2483,83 @@ export class GameEngine {
     ctx.restore();
   }
 
+  /**
+   * Draw one frame of a validated animation clip. Invalid clips (a sheet that
+   * cannot hold its declared frames) fall back to the still sprite instead of
+   * rendering sliced garbage.
+   */
+  private drawAnim(
+    ctx: CanvasRenderingContext2D,
+    anim: Animator,
+    fallback: HTMLImageElement | null,
+    x: number,
+    y: number,
+    z: number,
+    size: number,
+    facing: number,
+    flash = 0,
+    frameOverride?: number,
+  ) {
+    const clip: AnimationClip | undefined = anim.clip;
+    if (!clipReady(clip)) {
+      this.drawSprite(ctx, fallback, x, y, z, size, facing, flash);
+      return;
+    }
+    const index = frameOverride ?? anim.frameIndex;
+    const r = frameRect(clip, index);
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,.45)";
+    ctx.beginPath();
+    ctx.ellipse(x, y + size * 0.12, size * 0.26, size * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    const h = size;
+    const w = (r.sw / r.sh) * size;
+    ctx.save();
+    ctx.translate(x, y - z);
+    ctx.scale(facing >= 0 ? 1 : -1, 1);
+    ctx.drawImage(clip.image, r.sx, r.sy, r.sw, r.sh, -w / 2, -h * 0.86, w, h);
+    if (flash > 0) {
+      ctx.globalCompositeOperation = "source-atop";
+      ctx.globalAlpha = Math.min(0.85, flash * 4);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(-w / 2, -h * 0.86, w, h);
+    }
+    ctx.restore();
+  }
+
+  private drawCorpses(ctx: CanvasRenderingContext2D) {
+    for (const c of this.corpses) {
+      const t = c.anim.progress;
+      ctx.save();
+      ctx.globalAlpha = 1 - t;
+      ctx.translate(c.x, c.y - c.z);
+      ctx.rotate(c.facing * t * 1.1);
+      ctx.translate(-c.x, -(c.y - c.z));
+      this.drawAnim(ctx, c.anim, c.sprite, c.x, c.y, c.z * (1 - t), c.size, c.facing, 0);
+      ctx.restore();
+    }
+  }
+
   private drawEnemies(ctx: CanvasRenderingContext2D) {
     const sorted = [...this.enemies].sort((a, b) => a.y - b.y);
     for (const e of sorted) {
-      const sheetReady = !!e.runSheet && e.runSheet.complete && e.runSheet.naturalWidth > 0;
-      const bob = Math.abs(Math.sin(e.runPhase * Math.PI * 2)) * (e.flying ? 6 : e.size * 0.03);
-      if (sheetReady) {
-        const index = Math.floor(e.runPhase * e.runFrames) % e.runFrames;
-        this.drawSprite(ctx, e.runSheet, e.x, e.y, e.z + bob, e.size, e.facing, e.hitFlash, {
-          index,
-          count: e.runFrames,
-        });
-      } else {
-        this.drawSprite(ctx, e.sprite, e.x, e.y, e.z + bob, e.size, e.facing, e.hitFlash);
-      }
+      const bob = Math.abs(Math.sin(e.anim.phase * Math.PI * 2)) * (e.flying ? 6 : e.size * 0.03);
+      // attacking creatures lunge toward the player so the swing reads clearly
+      const lunge =
+        e.anim.state === "attack" ? Math.sin(e.anim.progress * Math.PI) * e.size * 0.12 : 0;
+      const recoil = e.anim.state === "hit" ? -Math.sin(e.anim.progress * Math.PI) * 8 : 0;
+      this.drawAnim(
+        ctx,
+        e.anim,
+        e.sprite,
+        e.x + e.facing * (lunge + recoil),
+        e.y,
+        e.z + bob,
+        e.size,
+        e.facing,
+        e.hitFlash,
+      );
       // health bar
       const w = Math.max(60, e.size * 0.6);
       const bx = e.x - w / 2;
@@ -2435,19 +2583,18 @@ export class GameEngine {
     const pet = getPet(this.petId);
     if (!pet) return;
     const key = petSpriteKey(this.petId);
-    const sheet = this.images[`${key}__run`] ?? null;
-    const frames = RUN_SHEETS[key]?.frames ?? 4;
-    const ready = !!sheet && sheet.complete && sheet.naturalWidth > 0;
-    const bob = Math.abs(Math.sin(this.petPhase * Math.PI * 2)) * 4;
-    if (ready) {
-      const index = Math.floor(this.petPhase * frames) % frames;
-      this.drawSprite(ctx, sheet, this.petX, this.petY, bob, 78, this.petFacing, 0, {
-        index,
-        count: frames,
-      });
-    } else {
-      this.drawSprite(ctx, this.images[key] ?? null, this.petX, this.petY, bob, 78, this.petFacing);
-    }
+    if (!this.petAnim) this.petAnim = new Animator(buildAnimationSet(key, false), "idle");
+    const bob = Math.abs(Math.sin(this.petAnim.phase * Math.PI * 2)) * 4;
+    this.drawAnim(
+      ctx,
+      this.petAnim,
+      this.images[key] ?? null,
+      this.petX,
+      this.petY,
+      bob,
+      78,
+      this.petFacing,
+    );
     // pet health bar
     if (this.petMaxHp > 0) {
       const w = 56;
@@ -2468,32 +2615,26 @@ export class GameEngine {
 
   private drawPlayer(ctx: CanvasRenderingContext2D) {
     const flick = this.invuln > 0 && Math.floor(this.time * 20) % 2 === 0;
-    const runSheet = this.images["playerRun"] ?? null;
-    const sheetReady = !!runSheet && runSheet.complete && runSheet.naturalWidth > 0;
     const running = this.pz <= 0 && this.runSpeed > 30;
     const airborne = this.pz > 0;
     const bob = running
-      ? Math.abs(Math.sin(this.runPhase * Math.PI * 2)) * 5
+      ? Math.abs(Math.sin(this.playerAnim.phase * Math.PI * 2)) * 5
       : Math.sin(this.time * 2.4) * 2;
     ctx.save();
     if (flick) ctx.globalAlpha = 0.45;
-    if (sheetReady && (running || airborne)) {
-      const index = airborne ? 2 : Math.floor(this.runPhase * this.runFrames) % this.runFrames;
-      this.drawSprite(ctx, runSheet, this.px, this.py, this.pz + bob, 118, this.facing, 0, {
-        index,
-        count: this.runFrames,
-      });
-    } else {
-      this.drawSprite(
-        ctx,
-        this.images["player"] ?? null,
-        this.px,
-        this.py,
-        this.pz + bob,
-        118,
-        this.facing,
-      );
-    }
+    // airborne holds a single stride frame instead of running in mid-air
+    this.drawAnim(
+      ctx,
+      this.playerAnim,
+      this.images["player"] ?? null,
+      this.px,
+      this.py,
+      this.pz + bob,
+      118,
+      this.facing,
+      0,
+      airborne ? 2 : undefined,
+    );
     ctx.restore();
 
     if (this.attackAnim > 0) {
