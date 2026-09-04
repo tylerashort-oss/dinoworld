@@ -505,6 +505,7 @@ function validateContent() {
       continue;
     }
     if (st.kind !== "titan") warn(`world ${w.id} boss "${w.finalBoss}" is not kind "titan"`);
+    if (!bossPlan(w.finalBoss)) warn(`world ${w.id} boss "${w.finalBoss}" has no boss AI plan`);
     if (!st.boss) warn(`world ${w.id} boss "${w.finalBoss}" is not flagged as a boss`);
   }
   // HP hierarchy: regular < mini-boss < world boss, and bosses climb per world
@@ -1841,7 +1842,7 @@ export class GameEngine {
     if (plan.approach === "kite") dir = d < near ? -1 : d > near + 130 ? 1 : 0;
     else if (plan.approach === "ranged") dir = d > near + 60 ? 1 : d < near - 90 ? -1 : 0;
     else dir = d > near ? 1 : 0;
-    const spd = e.speed * (e.enraged ? 1 : 1);
+    const spd = e.speed;
     e.x += Math.cos(ang) * spd * dir * dt;
     e.y += Math.sin(ang) * spd * dir * dt;
     e.strafeT -= dt;
