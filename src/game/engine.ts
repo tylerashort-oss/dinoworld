@@ -1509,7 +1509,8 @@ export class GameEngine {
       const eprevY = e.y;
       const d = dist(e.x, e.y, this.px, this.py);
       const ang = Math.atan2(this.py - e.y, this.px - e.x);
-      e.facing = this.px > e.x ? 1 : -1;
+      const fdx = this.px - e.x;
+      if (Math.abs(fdx) > 18) e.facing = fdx > 0 ? 1 : -1;
 
       if (e.kind === "titan" && !e.enraged && e.hp < e.maxHp * 0.5) {
         e.enraged = true;
