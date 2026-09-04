@@ -2927,6 +2927,7 @@ export class GameEngine {
     const flick = this.invuln > 0 && Math.floor(this.time * 20) % 2 === 0;
     const running = this.pz <= 0 && this.runSpeed > 30;
     const airborne = this.pz > 0;
+    void airborne;
     const bob = running
       ? Math.abs(Math.sin(this.playerAnim.phase * Math.PI * 2)) * 5
       : Math.sin(this.time * 2.4) * 2;
