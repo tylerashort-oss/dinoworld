@@ -83,7 +83,7 @@ function validate(clip: AnimationClip) {
     report(clip, `frameHeight ${cellH} exceeds sheet height ${img.naturalHeight}`);
     return;
   }
-  if (Math.abs(img.naturalWidth / clip.frameCount - Math.round(img.naturalWidth / clip.frameCount)) > 0.51 && clip.declaredWidth == null) {
+  if (Math.abs(img.naturalWidth / clip.frameCount - Math.round(img.naturalWidth / clip.frameCount)) > 0.05 && clip.declaredWidth == null) {
     report(clip, `width ${img.naturalWidth} does not divide evenly into ${clip.frameCount} frames`);
     return;
   }
