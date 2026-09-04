@@ -405,6 +405,89 @@ const ENEMY_STATS: Record<
   eclipsaurus: { hp: 5800, speed: 152, radius: 95, size: 380, contact: 40, boss: true, name: "ECLIPSAURUS", sprite: "eclipsaurus", bones: 320, kind: "titan" },
 };
 
+/**
+ * Single source of truth for per-world scaling.
+ *
+ * The per-enemy base HP in ENEMY_STATS ALREADY climbs world by world, so the
+ * live multiplier only needs to be a gentle top-up. Multiplying by the raw
+ * world number (as before) compounded on top of the base curve and made
+ * Worlds 4-6 statistically unfinishable (Eclipsaurus at 34,800 HP).
+ */
+export const worldScale = (world: number) => 1 + 0.15 * (Math.max(1, world) - 1);
+
+/** Trail-particle colour per theme (rendering already has full per-theme art). */
+const TRAIL_COLOR: Record<Theme, string> = {
+  fire: "#ff9d2e",
+  ice: "#9fe6ff",
+  poison: "#a4ee54",
+  desert: "#e9b757",
+  electric: "#a9dcff",
+  shadow: "#b98bff",
+};
+
+/**
+ * Dev-time content validation. Catches malformed enemy/pet definitions before
+ * they reach the canvas instead of silently rendering a broken entity.
+ */
+function validateContent() {
+  const warn = (m: string) => console.warn(`[dino-quest] ${m}`);
+  for (const [id, st] of Object.entries(ENEMY_STATS)) {
+    if (!(st.hp > 0)) warn(`enemy "${id}" has no HP`);
+    if (!(st.contact > 0)) warn(`enemy "${id}" deals no contact damage`);
+    if (!(st.speed > 0)) warn(`enemy "${id}" has no speed`);
+    if (!(st.radius > 0) || !(st.size > 0)) warn(`enemy "${id}" has an invalid hitbox/size`);
+    if (!SPRITES[st.sprite]) warn(`enemy "${id}" points at missing sprite "${st.sprite}"`);
+    const sheet = RUN_SHEETS[st.sprite];
+    if (!sheet) warn(`enemy "${id}" has no run sheet — it will not animate`);
+    else if (!Number.isInteger(sheet.frames) || sheet.frames < 2)
+      warn(`run sheet "${st.sprite}" has an invalid frame count (${sheet.frames})`);
+  }
+  // every world boss must be a titan (titans are the only kind with boss AI)
+  for (const w of WORLDS) {
+    const st = ENEMY_STATS[w.finalBoss as EnemyType];
+    if (!st) {
+      warn(`world ${w.id} boss "${w.finalBoss}" has no enemy definition`);
+      continue;
+    }
+    if (st.kind !== "titan") warn(`world ${w.id} boss "${w.finalBoss}" is not kind "titan"`);
+    if (!st.boss) warn(`world ${w.id} boss "${w.finalBoss}" is not flagged as a boss`);
+  }
+  // HP hierarchy: regular < mini-boss < world boss, and bosses climb per world
+  let prevBoss = 0;
+  for (const w of WORLDS) {
+    const scale = worldScale(w.id);
+    const types = new Set<EnemyType>();
+    for (const a of w.areas) for (const wave of a.waves) for (const s of wave) types.add(s.type);
+    let maxRegular = 0;
+    let maxMini = 0;
+    for (const t of types) {
+      const st = ENEMY_STATS[t];
+      if (!st) {
+        warn(`world ${w.id} spawns unknown enemy "${t}"`);
+        continue;
+      }
+      const hp = st.hp * scale;
+      if (st.kind === "titan") continue;
+      if (st.boss) maxMini = Math.max(maxMini, hp);
+      else maxRegular = Math.max(maxRegular, hp);
+    }
+    const bossHp = (ENEMY_STATS[w.finalBoss as EnemyType]?.hp ?? 0) * scale;
+    if (maxMini && maxRegular && maxMini <= maxRegular)
+      warn(`world ${w.id}: mini-boss HP (${maxMini}) is not above regular enemies (${maxRegular})`);
+    if (maxMini && bossHp <= maxMini)
+      warn(`world ${w.id}: world boss HP (${bossHp}) is not above mini-bosses (${maxMini})`);
+    if (bossHp <= prevBoss)
+      warn(`world ${w.id}: world boss HP (${bossHp}) is not above world ${w.id - 1} (${prevBoss})`);
+    prevBoss = bossHp;
+  }
+  for (const [id, pet] of Object.entries(PETS)) {
+    if (!(pet.damage > 0)) warn(`pet "${id}" deals no damage`);
+    if (!(pet.cooldown > 0)) warn(`pet "${id}" has no attack cooldown`);
+    if (!(90 + pet.damage * 3 > 0)) warn(`pet "${id}" would spawn with no HP`);
+  }
+}
+if (import.meta.env.DEV) validateContent();
+
 export class GameEngine {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
