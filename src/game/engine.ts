@@ -1,4 +1,5 @@
 import { AREAS, type AreaDef, type EnemyType } from "./areas";
+import { bossPlan, type BossMove, type BossPlan } from "./bosses";
 import { WORLDS, getAreas } from "./worlds";
 import {
   PETS,
@@ -150,6 +151,32 @@ interface Enemy {
   kind: EnemyKind;
   /** Separate from contactCd so hitting the player never shields the pet. */
   petContactCd: number;
+  /** Boss move set (world bosses only). */
+  plan: BossPlan | null;
+  /** Per-move cooldowns, parallel to plan.moves. */
+  moveCds: number[];
+  /** Move currently winding up, with its aim point locked in. */
+  cast: { move: BossMove; t: number; total: number; tx: number; ty: number } | null;
+  /** Seconds left of a committed charge. */
+  chargeT: number;
+  chargeAng: number;
+  /** Sideways drift direction, flipped now and then. */
+  strafeDir: number;
+  strafeT: number;
+}
+
+/** Heavy ground attack: a telegraphed ring that then erupts. */
+interface Shockwave {
+  x: number;
+  y: number;
+  r: number;
+  warn: number;
+  warnMax: number;
+  burst: number;
+  dmg: number;
+  color: string;
+  hit: boolean;
+  done: boolean;
 }
 
 interface Corpse {
@@ -478,6 +505,7 @@ function validateContent() {
       continue;
     }
     if (st.kind !== "titan") warn(`world ${w.id} boss "${w.finalBoss}" is not kind "titan"`);
+    if (!bossPlan(w.finalBoss)) warn(`world ${w.id} boss "${w.finalBoss}" has no boss AI plan`);
     if (!st.boss) warn(`world ${w.id} boss "${w.finalBoss}" is not flagged as a boss`);
   }
   // HP hierarchy: regular < mini-boss < world boss, and bosses climb per world
@@ -593,6 +621,7 @@ export class GameEngine {
   private numbers: DamageNumber[] = [];
   private pickups: Pickup[] = [];
   private eruptions: Eruption[] = [];
+  private shockwaves: Shockwave[] = [];
   private waveIndex = 0;
   private waveDelay = 0;
   private exitOpen = false;
@@ -763,6 +792,7 @@ export class GameEngine {
     this.particles = [];
     this.numbers = [];
     this.eruptions = [];
+    this.shockwaves = [];
     this.waveIndex = 0;
     this.waveDelay = 0.8;
     this.exitOpen = area.waves.length === 0 && !area.chest;
@@ -1274,6 +1304,13 @@ export class GameEngine {
         bones: Math.round(st.bones * this.difficulty),
         kind: st.kind,
         petContactCd: 0,
+        plan: st.kind === "titan" ? bossPlan(s.type) : null,
+        moveCds: (bossPlan(s.type)?.moves ?? []).map((m, i) => 0.8 + i * 0.7 + m.telegraph),
+        cast: null,
+        chargeT: 0,
+        chargeAng: 0,
+        strafeDir: Math.random() < 0.5 ? 1 : -1,
+        strafeT: 1.5,
       });
       if (st.boss) {
         playSfx("boss");
@@ -1490,20 +1527,7 @@ export class GameEngine {
           this.shoot(e.x, e.y, ang, 260, 9);
         }
       } else if (e.kind === "titan") {
-        const spd = e.speed * (d > 170 ? 1 : 0);
-        e.x += Math.cos(ang) * spd * dt;
-        e.y += Math.sin(ang) * spd * dt;
-        e.shootTimer -= dt;
-        if (e.shootTimer <= 0) {
-          e.shootTimer = e.enraged ? 1.7 : 2.8;
-          e.anim.setState("attack", true);
-          const n = e.enraged ? 5 : 3;
-          for (let i = 0; i < n; i++) {
-            const spread = (i - (n - 1) / 2) * 0.28;
-            this.shoot(e.x, e.y, ang + spread, 300, 12);
-          }
-          playSfx("eruption");
-        }
+        this.updateBoss(e, d, ang, dt);
       } else {
         // chasers: fireling, mini raptor, utahraptor
         let spd = e.speed;
@@ -1688,6 +1712,43 @@ export class GameEngine {
     }
     compact(this.eruptions, (e) => !e.done);
 
+    // ---- boss ground slams
+    for (const sw of this.shockwaves) {
+      if (sw.warn > 0) {
+        sw.warn -= dt;
+        if (sw.warn <= 0) {
+          sw.burst = 0.5;
+          playSfx("eruption");
+          for (let i = 0; i < 26; i++)
+            pushCapped(
+              this.particles,
+              {
+                x: sw.x + (Math.random() - 0.5) * sw.r,
+                y: sw.y + (Math.random() - 0.5) * sw.r * 0.6,
+                vx: (Math.random() - 0.5) * 200,
+                vy: -200 - Math.random() * 200,
+                life: 0.7,
+                maxLife: 0.7,
+                color: sw.color,
+                size: 8 + Math.random() * 8,
+              },
+              MAX_PARTICLES,
+            );
+          if (!sw.hit) {
+            sw.hit = true;
+            if (this.pz < 45 && dist(sw.x, sw.y, this.px, this.py) < sw.r)
+              this.hurtPlayer(Math.round(sw.dmg * this.difficulty));
+            if (this.petId && this.petDownCd <= 0 && dist(sw.x, sw.y, this.petX, this.petY) < sw.r)
+              this.hurtPet(Math.round(sw.dmg * 0.7 * this.difficulty));
+          }
+        }
+      } else {
+        sw.burst -= dt;
+        if (sw.burst <= 0) sw.done = true;
+      }
+    }
+    compact(this.shockwaves, (sw) => !sw.done);
+
     // ---- cave discovery
     if (area.cave && !this.caveFound && dist(this.px, this.py, area.cave.x, area.cave.y) < 70) {
       this.caveFound = true;
@@ -1728,6 +1789,219 @@ export class GameEngine {
       this.numbers.splice(0, this.numbers.length - MAX_NUMBERS);
     if (this.projectiles.length > MAX_PROJECTILES)
       this.projectiles.splice(0, this.projectiles.length - MAX_PROJECTILES);
+  }
+
+  /**
+   * Boss brain. Positioning comes from the plan's approach style; attacks come
+   * from the plan's move list. Bosses act on their own timers, so they fight
+   * whether or not the player pokes them first.
+   */
+  private updateBoss(e: Enemy, d: number, ang: number, dt: number) {
+    const plan = e.plan;
+    if (!plan) {
+      // titan with no plan: still advance and shoot rather than stand there
+      if (d > 170) {
+        e.x += Math.cos(ang) * e.speed * dt;
+        e.y += Math.sin(ang) * e.speed * dt;
+      }
+      e.shootTimer -= dt;
+      if (e.shootTimer <= 0) {
+        e.shootTimer = e.enraged ? 1.7 : 2.8;
+        e.anim.setState("attack", true);
+        for (let i = -1; i <= 1; i++) this.shoot(e.x, e.y, ang + i * 0.28, 300, 12);
+      }
+      return;
+    }
+
+    // ---- committed charge: barrels through until it runs out
+    if (e.chargeT > 0) {
+      e.chargeT -= dt;
+      e.x += Math.cos(e.chargeAng) * e.speed * 2.6 * dt;
+      e.y += Math.sin(e.chargeAng) * e.speed * 2.6 * dt;
+      this.bossDust(e, 3);
+      return;
+    }
+
+    // ---- winding up: the boss plants its feet so the tell is readable
+    if (e.cast) {
+      e.cast.t -= dt;
+      this.castSparks(e);
+      if (e.cast.t <= 0) {
+        const move = e.cast.move;
+        const tx = e.cast.tx;
+        const ty = e.cast.ty;
+        e.cast = null;
+        this.fireBossMove(e, move, tx, ty);
+      }
+      return;
+    }
+
+    // ---- positioning
+    const near = plan.preferredRange;
+    let dir = 0;
+    if (plan.approach === "kite") dir = d < near ? -1 : d > near + 130 ? 1 : 0;
+    else if (plan.approach === "ranged") dir = d > near + 60 ? 1 : d < near - 90 ? -1 : 0;
+    else dir = d > near ? 1 : 0;
+    const spd = e.speed;
+    e.x += Math.cos(ang) * spd * dir * dt;
+    e.y += Math.sin(ang) * spd * dir * dt;
+    e.strafeT -= dt;
+    if (e.strafeT <= 0) {
+      e.strafeT = 1.4 + Math.random() * 1.6;
+      e.strafeDir *= -1;
+    }
+    if (plan.strafe > 0) {
+      e.x += Math.cos(ang + Math.PI / 2) * spd * plan.strafe * e.strafeDir * dt;
+      e.y += Math.sin(ang + Math.PI / 2) * spd * plan.strafe * e.strafeDir * dt;
+    }
+
+    // ---- pick the next move
+    const rate = e.enraged ? plan.enrageRate : 1;
+    let choice = -1;
+    for (let i = 0; i < plan.moves.length; i++) {
+      const m = plan.moves[i] as BossMove;
+      e.moveCds[i] = (e.moveCds[i] ?? 0) - dt;
+      if ((e.moveCds[i] as number) > 0) continue;
+      if (m.enrageOnly && !e.enraged) continue;
+      if (m.minRange != null && d < m.minRange) continue;
+      if (m.maxRange != null && d > m.maxRange) continue;
+      if (choice < 0 || (e.moveCds[i] as number) < (e.moveCds[choice] as number)) choice = i;
+    }
+    if (choice < 0) return;
+    const move = plan.moves[choice] as BossMove;
+    e.moveCds[choice] = move.cooldown * rate;
+    const tel = move.telegraph * (e.enraged ? 0.8 : 1);
+    e.cast = { move, t: tel, total: tel, tx: this.px, ty: this.py };
+    e.anim.setState("attack", true);
+    if (move.shout) this.banner(`${e.name}: ${move.shout}`);
+    if (move.kind === "slam" || move.kind === "charge") playSfx("boss");
+    if (move.kind === "slam") {
+      this.shockwaves.push({
+        x: this.px,
+        y: this.py,
+        r: move.radius ?? 170,
+        warn: tel,
+        warnMax: tel,
+        burst: 0,
+        dmg: move.damage,
+        color: this.tc("#ff3b1f", "#5ec8ff", "#5ee03c", "#ffcc57", "#ffe23d", "#c08bff"),
+        hit: false,
+        done: false,
+      });
+    }
+  }
+
+  /** Runs a boss move once its wind-up finishes. */
+  private fireBossMove(e: Enemy, move: BossMove, tx: number, ty: number) {
+    const ang = Math.atan2(ty - e.y, tx - e.x);
+    const speed = move.speed ?? 300;
+    const extra = e.enraged ? 2 : 0;
+    switch (move.kind) {
+      case "spread": {
+        const n = (move.count ?? 3) + extra;
+        const arc = move.spread ?? 0.35;
+        for (let i = 0; i < n; i++) {
+          const off = n === 1 ? 0 : (i - (n - 1) / 2) * arc;
+          this.shoot(e.x, e.y, ang + off, speed, move.damage);
+        }
+        playSfx("eruption");
+        break;
+      }
+      case "volley": {
+        const n = (move.count ?? 4) + extra;
+        for (let i = 0; i < n; i++)
+          this.shoot(e.x, e.y, ang + (Math.random() - 0.5) * 0.22, speed * (0.9 + i * 0.05), move.damage);
+        playSfx("eruption");
+        break;
+      }
+      case "burst": {
+        const n = (move.count ?? 12) + extra * 2;
+        for (let i = 0; i < n; i++) this.shoot(e.x, e.y, (i / n) * Math.PI * 2, speed, move.damage);
+        playSfx("eruption");
+        break;
+      }
+      case "bolt": {
+        this.shoot(e.x, e.y, ang, speed, move.damage);
+        playSfx("eruption");
+        break;
+      }
+      case "charge": {
+        e.chargeAng = ang;
+        e.chargeT = 0.7;
+        break;
+      }
+      case "teleport": {
+        const a = Math.random() * Math.PI * 2;
+        const r = 200 + Math.random() * 90;
+        this.bossPoof(e);
+        e.x = clamp(this.px + Math.cos(a) * r, 60, this.area.w - 60);
+        e.y = clamp(this.py + Math.sin(a) * r, 60, this.area.h - 60);
+        this.bossPoof(e);
+        playSfx("boss");
+        break;
+      }
+      case "slam":
+        // the shockwave queued at wind-up time does the damage
+        break;
+    }
+  }
+
+  /** Dust kicked up under a charging boss. */
+  private bossDust(e: Enemy, n: number) {
+    for (let i = 0; i < n; i++)
+      pushCapped(
+        this.particles,
+        {
+          x: e.x + (Math.random() - 0.5) * e.size * 0.3,
+          y: e.y + e.size * 0.1,
+          vx: (Math.random() - 0.5) * 90,
+          vy: -40 - Math.random() * 60,
+          life: 0.4,
+          maxLife: 0.4,
+          color: this.tc("#ff9d3c", "#cfeeff", "#9fe06a", "#e8c98a", "#ffe23d", "#b39bff"),
+          size: 6 + Math.random() * 6,
+        },
+        MAX_PARTICLES,
+      );
+  }
+
+  /** Sparks gathering while a boss winds up, so the tell reads at a glance. */
+  private castSparks(e: Enemy) {
+    if (Math.random() > 0.5) return;
+    const a = Math.random() * Math.PI * 2;
+    const r = e.radius + 60;
+    pushCapped(
+      this.particles,
+      {
+        x: e.x + Math.cos(a) * r,
+        y: e.y + Math.sin(a) * r * 0.6,
+        vx: -Math.cos(a) * 150,
+        vy: -Math.sin(a) * 90,
+        life: 0.4,
+        maxLife: 0.4,
+        color: this.tc("#ffb03a", "#8fd8ff", "#8ce35a", "#ffcc57", "#ffe23d", "#c08bff"),
+        size: 6 + Math.random() * 5,
+      },
+      MAX_PARTICLES,
+    );
+  }
+
+  private bossPoof(e: Enemy) {
+    for (let i = 0; i < 18; i++)
+      pushCapped(
+        this.particles,
+        {
+          x: e.x,
+          y: e.y,
+          vx: (Math.random() - 0.5) * 320,
+          vy: (Math.random() - 0.5) * 260,
+          life: 0.5,
+          maxLife: 0.5,
+          color: this.tc("#ff7a45", "#8fd8ff", "#8ce35a", "#ffcc57", "#ffe23d", "#8b5cf6"),
+          size: 8 + Math.random() * 8,
+        },
+        MAX_PARTICLES,
+      );
   }
 
   private shoot(x: number, y: number, ang: number, speed: number, dmg: number) {
@@ -1973,6 +2247,7 @@ export class GameEngine {
 
     this.drawLava(ctx);
     this.drawEruptions(ctx);
+    this.drawShockwaves(ctx);
     this.drawCaveAndExit(ctx);
     this.drawPickups(ctx);
     this.drawRocks(ctx);
@@ -2169,6 +2444,38 @@ export class GameEngine {
       ctx.beginPath();
       ctx.roundRect(r.x, r.y, r.w, r.h, 26);
       ctx.stroke();
+    }
+  }
+
+  /** Telegraph ring + blast for boss ground slams. */
+  private drawShockwaves(ctx: CanvasRenderingContext2D) {
+    for (const sw of this.shockwaves) {
+      ctx.save();
+      if (sw.warn > 0) {
+        const t = 1 - sw.warn / sw.warnMax;
+        ctx.globalAlpha = 0.35 + 0.35 * Math.sin(this.time * 20);
+        ctx.strokeStyle = sw.color;
+        ctx.lineWidth = 8;
+        ctx.setLineDash([18, 14]);
+        ctx.beginPath();
+        ctx.ellipse(sw.x, sw.y, sw.r, sw.r * 0.6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = sw.color;
+        ctx.beginPath();
+        ctx.ellipse(sw.x, sw.y, sw.r * t, sw.r * 0.6 * t, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const t = clamp(sw.burst / 0.5, 0, 1);
+        ctx.globalAlpha = t;
+        ctx.strokeStyle = sw.color;
+        ctx.lineWidth = 14 * t;
+        ctx.beginPath();
+        ctx.ellipse(sw.x, sw.y, sw.r * (1.6 - t * 0.6), sw.r * 0.6 * (1.6 - t * 0.6), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
   }
 
