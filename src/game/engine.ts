@@ -1,4 +1,5 @@
 import { AREAS, type AreaDef, type EnemyType } from "./areas";
+import { bossPlan, type BossMove, type BossPlan } from "./bosses";
 import { WORLDS, getAreas } from "./worlds";
 import {
   PETS,
@@ -150,6 +151,32 @@ interface Enemy {
   kind: EnemyKind;
   /** Separate from contactCd so hitting the player never shields the pet. */
   petContactCd: number;
+  /** Boss move set (world bosses only). */
+  plan: BossPlan | null;
+  /** Per-move cooldowns, parallel to plan.moves. */
+  moveCds: number[];
+  /** Move currently winding up, with its aim point locked in. */
+  cast: { move: BossMove; t: number; total: number; tx: number; ty: number } | null;
+  /** Seconds left of a committed charge. */
+  chargeT: number;
+  chargeAng: number;
+  /** Sideways drift direction, flipped now and then. */
+  strafeDir: number;
+  strafeT: number;
+}
+
+/** Heavy ground attack: a telegraphed ring that then erupts. */
+interface Shockwave {
+  x: number;
+  y: number;
+  r: number;
+  warn: number;
+  warnMax: number;
+  burst: number;
+  dmg: number;
+  color: string;
+  hit: boolean;
+  done: boolean;
 }
 
 interface Corpse {
@@ -593,6 +620,7 @@ export class GameEngine {
   private numbers: DamageNumber[] = [];
   private pickups: Pickup[] = [];
   private eruptions: Eruption[] = [];
+  private shockwaves: Shockwave[] = [];
   private waveIndex = 0;
   private waveDelay = 0;
   private exitOpen = false;
@@ -1274,6 +1302,13 @@ export class GameEngine {
         bones: Math.round(st.bones * this.difficulty),
         kind: st.kind,
         petContactCd: 0,
+        plan: st.kind === "titan" ? bossPlan(s.type) : null,
+        moveCds: (bossPlan(s.type)?.moves ?? []).map((m, i) => 0.8 + i * 0.7 + m.telegraph),
+        cast: null,
+        chargeT: 0,
+        chargeAng: 0,
+        strafeDir: Math.random() < 0.5 ? 1 : -1,
+        strafeT: 1.5,
       });
       if (st.boss) {
         playSfx("boss");
