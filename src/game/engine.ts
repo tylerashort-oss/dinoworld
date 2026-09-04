@@ -1576,6 +1576,7 @@ export class GameEngine {
         if (emoved > 0.2) {
           if (!oneShot) e.anim.setState("run");
           const prevPhase = e.anim.phase;
+          if (!oneShot) e.anim.update(dt);
           e.anim.advanceFrames((emoved / (e.size * 0.55)) * e.runFrames);
           if (Math.floor(prevPhase * e.runFrames) !== Math.floor(e.anim.phase * e.runFrames)) {
             this.particles.push({
